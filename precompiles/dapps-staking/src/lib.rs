@@ -3,15 +3,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use codec::{Decode, Encode};
-// use evm::{executor::PrecompileOutput, Context, ExitError, ExitSucceed};
-// use frame_support::{
-//     dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
-//     traits::Get,
-// };
-// use pallet_evm::{GasWeightMapping, Precompile};
-// // use sp_core::H160;
-// use sp_std::{marker::PhantomData};
-
 use fp_evm::{Context, ExitError, ExitSucceed, PrecompileOutput};
 use frame_support::dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo};
 use frame_support::traits::Get;
@@ -19,7 +10,7 @@ use pallet_evm::{AddressMapping, GasWeightMapping, Precompile};
 use sp_core::H160;
 use sp_runtime::traits::{SaturatedConversion, Zero};
 use sp_std::convert::TryInto;
-use sp_std::marker::PhantomData;
+use sp_std::{marker::PhantomData, vec::Vec};
 extern crate alloc;
 
 mod utils;
@@ -222,7 +213,6 @@ where
         println!("--> precompile origin = {}", origin);
         let post_info = call.dispatch(Some(origin).into()).map_err(|e| {
             println!("!!!!!!!!!!! ERROR={:x?}", e);
-            assert!(false);
             ExitError::Other("Method call via EVM failed".into())
         })?;
         println!("--> precompile post_info ={:?}", post_info);
