@@ -23,8 +23,8 @@ pub(crate) type BlockNumber = u64;
 pub(crate) type Balance = u128;
 pub(crate) type EraIndex = u32;
 pub(crate) const REWARD_SCALING: u32 = 2;
-pub const MILLIAST: Balance = 1_000_000_000_000_000;
-pub const AST: Balance = 1_000 * MILLIAST;
+pub(crate) const MILLIAST: Balance = 1_000_000_000_000_000;
+pub(crate) const AST: Balance = 1_000 * MILLIAST;
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
@@ -387,7 +387,7 @@ pub fn exit_error<T: Into<alloc::borrow::Cow<'static, str>>>(text: T) -> ExitErr
 
 /// returns call struct to be used with evm calls
 pub fn evm_call(source: AccountId, input: Vec<u8>) -> pallet_evm::Call<TestRuntime> {
-    pallet_evm::Call::call{
+    pallet_evm::Call::call {
         source: source.to_h160(),
         target: precompile_address(),
         input,

@@ -62,10 +62,10 @@ impl Default for Forcing {
 pub struct EraRewardAndStake<Balance: HasCompact> {
     /// Total amount of rewards for an era
     #[codec(compact)]
-    rewards: Balance,
+    pub rewards: Balance,
     /// Total staked amount for an era
     #[codec(compact)]
-    staked: Balance,
+    pub staked: Balance,
 }
 
 /// Used to split total EraPayout among contracts.

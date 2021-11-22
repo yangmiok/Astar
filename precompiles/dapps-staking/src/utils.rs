@@ -109,6 +109,13 @@ pub fn argument_from_h160_vec(mut value: Vec<u8>) -> Vec<u8> {
     buffer
 }
 
+/// Store u8 array of 20 bytes in the 32 bytes vector as big endian
+pub fn argument_from_h160_array(value: [u8; 20]) -> Vec<u8> {
+    let mut buffer = vec![0; ARG_SIZE_BYTES];
+    buffer[ARG_SIZE_BYTES - core::mem::size_of::<H160>()..].copy_from_slice(&value);
+    buffer
+}
+
 /// Returns an evm error with provided (static) text.
 pub fn exit_error<T: Into<alloc::borrow::Cow<'static, str>>>(text: T) -> ExitError {
     ExitError::Other(text.into())
