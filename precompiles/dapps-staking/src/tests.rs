@@ -155,30 +155,56 @@ fn register_is_ok() {
         .execute_with(|| {
             initialize_first_block();
             let developer = TestAccount::Alex;
-            let selector = &Keccak256::digest(b"register(address)")[0..4];
-            let mut input_data = Vec::<u8>::from([0u8; 36]);
-            input_data[0..4].copy_from_slice(&selector);
-
             let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
-            input_data[16..36].copy_from_slice(&contract_array);
-
-            // register new contract
-            assert_ok!(Call::Evm(evm_call(developer.clone(), input_data)).dispatch(Origin::root()));
-
-            // let result = Evm::call(Origin::root(),
-            // developer.to_h160(),
-            // precompile_address(),
-            // input_data,
-            // U256::zero(),
-            // u64::max_value(),
-            // U256::zero().into(),
-            // None);
-
-            check_registered_contract(developer, contract_array);
-            // check_register_event(developer, contract_h160);
+            register_and_verify(developer, contract_array.clone());
         });
 }
 
+#[test]
+fn bond_and_stake_is_ok() {
+    ExternalityBuilder::default()
+        .with_balances(vec![
+            (TestAccount::Alex, 200 * AST),
+            (TestAccount::Bobo, 200 * AST),
+        ])
+        .build()
+        .execute_with(|| {
+            initialize_first_block();
+
+            // register new contract by Alex
+            let developer = TestAccount::Alex;
+            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
+            register_and_verify(developer, contract_array.clone());
+
+            // bond funds by Bobo
+            let selector = &Keccak256::digest(b"bond_and_stake(address, uint128)")[0..4];
+            let staker = TestAccount::Bobo;
+            let mut input_data = Vec::<u8>::from([0u8; 68]);
+            input_data[0..4].copy_from_slice(&selector);
+            input_data[16..36].copy_from_slice(&contract_array);
+            let staking_amount = (100 * AST).to_be_bytes();
+            input_data[(68 - staking_amount.len())..68].copy_from_slice(&staking_amount);
+
+            assert_ok!(Call::Evm(evm_call(staker, input_data)).dispatch(Origin::root()));
+        });
+}
+
+// helper function to register and verify if registration is valid
+fn register_and_verify(developer: TestAccount, contract_array: [u8; 20]) {
+    let selector = &Keccak256::digest(b"register(address)")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 36]);
+    input_data[0..4].copy_from_slice(&selector);
+
+    input_data[16..36].copy_from_slice(&contract_array);
+
+    // register new contract
+    assert_ok!(Call::Evm(evm_call(developer.clone(), input_data)).dispatch(Origin::root()));
+
+    check_registered_contract(developer, contract_array);
+    // check_register_event(developer, contract_h160);
+}
+
+// helper function to read storage with registered contracts
 fn check_registered_contract(developer: TestAccount, contract_array_h160: [u8; 20]) {
     println!(
         "--- check_registered_contract contract_array_h160({:?}) {:?}",
@@ -186,7 +212,6 @@ fn check_registered_contract(developer: TestAccount, contract_array_h160: [u8; 2
         contract_array_h160
     );
 
-    // check if the contract is registered
     let selector = &Keccak256::digest(b"registered_contract(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
     input_data[0..4].copy_from_slice(&selector);
