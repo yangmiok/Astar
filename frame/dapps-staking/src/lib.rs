@@ -75,12 +75,12 @@ pub struct EraRewardAndStake<Balance: HasCompact> {
 pub struct EraStakingPoints<AccountId: Ord, Balance: HasCompact> {
     /// Total staked amount.
     #[codec(compact)]
-    total: Balance,
+    pub total: Balance,
     /// The map of stakers and the amount they staked.
-    stakers: BTreeMap<AccountId, Balance>,
+    pub stakers: BTreeMap<AccountId, Balance>,
     /// Accrued and claimed rewards on this contract both for stakers and the developer
     #[codec(compact)]
-    claimed_rewards: Balance,
+    pub claimed_rewards: Balance,
 }
 
 /// Storage value representing the current Dapps staking pallet storage version.

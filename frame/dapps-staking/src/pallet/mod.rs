@@ -161,7 +161,7 @@ pub mod pallet {
     /// Stores amount staked and stakers for a contract per era
     #[pallet::storage]
     #[pallet::getter(fn contract_era_stake)]
-    pub(crate) type ContractEraStake<T: Config> = StorageDoubleMap<
+    pub type ContractEraStake<T: Config> = StorageDoubleMap<
         _,
         Blake2_128Concat,
         T::SmartContract,
@@ -772,7 +772,7 @@ pub mod pallet {
 
         /// This helper returns `EraStakingPoints` for given era if possible or latest stored data
         /// or finally default value if storage have no data for it.
-        pub(crate) fn staking_info(
+        pub fn staking_info(
             contract_id: &T::SmartContract,
             era: EraIndex,
         ) -> EraStakingPoints<T::AccountId, BalanceOf<T>> {

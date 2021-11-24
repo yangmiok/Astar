@@ -102,6 +102,42 @@ where
         })
     }
 
+    /// Fetch amount staked and stakers for a contract per era
+    fn contract_era_stake(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
+        println!("--- precompile contract_era_stake() {:?}", input.len());
+        input.expecting_arguments(2).map_err(|e| exit_error(e))?;
+
+        // parse input parameters for pallet-dapps-staking call
+        let contract_h160 = input.to_h160(1);
+        let contract_id = Self::decode_smart_contract(contract_h160)?;
+        let era = input.to_u256(2).low_u32();
+        println!(
+            "--- precompile contract_id={:?}, era={:?}",
+            contract_id, era
+        );
+
+        // call pallet-dapps-staking
+        let staking_info = pallet_dapps_staking::Pallet::<R>::staking_info(&contract_id, era);
+        let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
+
+        // encode output
+        let total = TryInto::<u128>::try_into(staking_info.total).unwrap_or(0);
+        let mut output = utils::argument_from_u128(total);
+        let claimed_rewards = TryInto::<u128>::try_into(staking_info.claimed_rewards).unwrap_or(0);
+        let mut claimed_rewards_vec = utils::argument_from_u128(claimed_rewards);
+        output.append(&mut claimed_rewards_vec);
+
+        println!("--- precompile staking_info {:?}", staking_info);
+        println!("--- precompile output {:?}", output);
+
+        Ok(PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            cost: gas_used,
+            output,
+            logs: Default::default(),
+        })
+    }
+
     /// Register contract with the dapp-staking pallet
     fn register(input: EvmInArg) -> Result<R::Call, ExitError> {
         println!("--- precompile register() {:?}", input.len());
@@ -175,23 +211,17 @@ where
         let selector = input.selector().map_err(|e| exit_error(e))?;
         let call = match selector {
             // storage getters
-            // current_era = [215, 190, 56, 150]
             [0xd7, 0xbe, 0x38, 0x96] => return Self::current_era(),
-            // era_reward_and_stake [185, 183, 14, 142]
             [0xb9, 0xb7, 0x0e, 0x8e] => return Self::era_reward_and_stake(input),
-            // registered_contract [0x19, 0x2f, 0xb2, 0x56] 'address Developer'
             [0x19, 0x2f, 0xb2, 0x56] => return Self::registered_contract(input),
+            [0x3b, 0x41, 0xe1, 0xf4] => return Self::contract_era_stake(input),
 
             // extrinsic calls
-            // register [0x44, 0x20, 0xe4, 0x86]
             [0x44, 0x20, 0xe4, 0x86] => Self::register(input)?,
-            // bond_and_stake [0x52, 0xb7, 0x3e, 0x41]
             [0x52, 0xb7, 0x3e, 0x41] => Self::bond_and_stake(input)?,
             _ => {
                 println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);
-                return Err(ExitError::Other(
-                    "No method at selector given selector".into(),
-                ));
+                return Err(ExitError::Other("No method at given selector".into()));
             }
         };
 
@@ -212,7 +242,7 @@ where
         let origin = R::AddressMapping::into_account_id(context.caller);
         println!("--> precompile origin = {}", origin);
         let post_info = call.dispatch(Some(origin).into()).map_err(|e| {
-            println!("!!!!!!!!!!! ERROR={:x?}", e);
+            println!("!!!!!!!!!!! ERROR={:x?}", e.error);
             ExitError::Other("Method call via EVM failed".into())
         })?;
         println!("--> precompile post_info ={:?}", post_info);
