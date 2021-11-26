@@ -123,24 +123,33 @@ where
         // encode output with total and rewards
         let total = TryInto::<u128>::try_into(staking_info.total).unwrap_or(0);
         let mut output = utils::argument_from_u128(total);
+        println!("output-- {:x?}", output);
         let claimed_rewards = TryInto::<u128>::try_into(staking_info.claimed_rewards).unwrap_or(0);
         let mut claimed_rewards_vec = utils::argument_from_u128(claimed_rewards);
+        println!("output-- {:x?}", claimed_rewards_vec);
         output.append(&mut claimed_rewards_vec);
+
+        // Encode number of elements of the array
+        // since we encode array uint256 as [staker1, amount1, staker2, amount2],
+        // the number of elements is double the size of entries in the stakers map
+        // see https://docs.soliditylang.org/en/v0.8.10/abi-spec.html#mapping-solidity-to-abi-types
+        let mut offset = utils::argument_from_u32(0x60_u32);
+        println!("output-- {:?}", offset);
+        output.append(&mut offset);
+        let mut num_elements = utils::argument_from_u32((staking_info.stakers.len() * 2) as u32);
+        println!("output-- {:?}", num_elements);
+        output.append(&mut num_elements);
 
         // encode output for all pairs of staker:amount
         for staker_amount_pair in staking_info.stakers.clone() {
-            println!("staker_amount_pair {:?}", staker_amount_pair);
             let mut address = Self::argument_from_account_id(&staker_amount_pair.0);
             let mut amount =
                 argument_from_u128(TryInto::<u128>::try_into(staker_amount_pair.1).unwrap_or(0));
-
-            println!("address {:?}, \namount {:?}", address, amount);
+            println!("output-- {:?}", address);
             output.append(&mut address);
+            println!("output-- {:?}", amount);
             output.append(&mut amount);
         }
-
-        println!("--- precompile staking_info {:?}", staking_info);
-        println!("--- precompile output {:?}", output);
 
         Ok(PrecompileOutput {
             exit_status: ExitSucceed::Returned,

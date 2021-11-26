@@ -195,7 +195,6 @@ fn bond_and_stake_is_ok() {
                 amount_staked_bobo + amount_staked_dino,
                 stakers_map,
             );
-            assert!(false);
         });
 }
 
@@ -292,7 +291,13 @@ fn staking_info_verify(
     let mut claimed_reward_vec = utils::argument_from_u128(claimed_reward);
     expected_output.append(&mut claimed_reward_vec);
 
-    // Compose expected outcome: 2. add stakers map
+    // Compose expected outcome: 2. add number of elements of the array
+    let mut offset = utils::argument_from_u32(0x60_u32);
+    expected_output.append(&mut offset);
+    let mut num_elements = utils::argument_from_u32((stakers_map.len() * 2) as u32);
+    expected_output.append(&mut num_elements);
+
+    // Compose expected outcome: 3. add stakers map as array [staker1, amount1, staker2, amount2]
     for staker_amount in stakers_map {
         println!("staker_amount_pair {:?}", staker_amount);
         let mut address = staker_amount.0.to_argument();
