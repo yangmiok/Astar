@@ -162,7 +162,7 @@ where
     pub fn argument_from_account_id(account: &R::AccountId) -> Vec<u8> {
         let mut account_encoded = R::AccountId::encode(account);
         let encoded_len = account_encoded.len();
-        let mut buffer = vec![0; ARG_SIZE_BYTES - encoded_len];
+        let mut buffer = sp_std::vec![0; ARG_SIZE_BYTES - encoded_len];
         buffer.append(&mut account_encoded);
         buffer
     }

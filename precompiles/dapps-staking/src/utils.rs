@@ -104,14 +104,14 @@ pub fn argument_from_h160(value: H160) -> Vec<u8> {
 /// First create buffer of size 32-21 and append encoded input value of size 21
 pub fn argument_from_h160_vec(mut value: Vec<u8>) -> Vec<u8> {
     const ENCODED_LEN: usize = core::mem::size_of::<H160>() + 1; // 21
-    let mut buffer = vec![0; ARG_SIZE_BYTES - ENCODED_LEN];
+    let mut buffer = Vec::<u8>::from([0; ARG_SIZE_BYTES - ENCODED_LEN]);
     buffer.append(&mut value);
     buffer
 }
 
 /// Store u8 array of 20 bytes in the 32 bytes vector as big endian
 pub fn argument_from_h160_array(value: [u8; 20]) -> Vec<u8> {
-    let mut buffer = vec![0; ARG_SIZE_BYTES];
+    let mut buffer = Vec::<u8>::from([0; ARG_SIZE_BYTES]);
     buffer[ARG_SIZE_BYTES - core::mem::size_of::<H160>()..].copy_from_slice(&value);
     buffer
 }
