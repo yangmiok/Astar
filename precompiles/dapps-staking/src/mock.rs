@@ -66,6 +66,7 @@ pub enum TestAccount {
     Empty,
     Alex,
     Bobo,
+    Dino,
 }
 
 impl Default for TestAccount {
@@ -79,6 +80,7 @@ impl AddressMapping<TestAccount> for TestAccount {
         match h160_account {
             a if a == H160::repeat_byte(0x11) => Self::Alex,
             a if a == H160::repeat_byte(0x22) => Self::Bobo,
+            a if a == H160::repeat_byte(0x33) => Self::Dino,
             _ => Self::Empty,
         }
     }
@@ -90,6 +92,7 @@ impl TestAccount {
             Self::Empty => Default::default(),
             Self::Alex => H160::repeat_byte(0x11),
             Self::Bobo => H160::repeat_byte(0x22),
+            Self::Dino => H160::repeat_byte(0x33),
         }
     }
 }
@@ -97,6 +100,16 @@ impl TestAccount {
 impl From<H160> for TestAccount {
     fn from(h160_account: H160) -> TestAccount {
         TestAccount::into_account_id(h160_account)
+    }
+}
+
+impl TestAccount {
+    pub fn to_argument(&self) -> Vec<u8> {
+        let mut account_encoded = self.encode();
+        let encoded_len = account_encoded.len();
+        let mut buffer = vec![0; ARG_SIZE_BYTES - encoded_len];
+        buffer.append(&mut account_encoded);
+        buffer
     }
 }
 

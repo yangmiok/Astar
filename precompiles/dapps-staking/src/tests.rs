@@ -8,6 +8,8 @@ use frame_support::{assert_ok, dispatch::Dispatchable};
 use pallet_evm::{ExitSucceed, PrecompileSet};
 use sha3::{Digest, Keccak256};
 use sp_core::H160;
+use sp_std::convert::TryInto;
+use std::collections::BTreeMap;
 
 use crate::utils;
 
@@ -168,6 +170,7 @@ fn bond_and_stake_is_ok() {
         .with_balances(vec![
             (TestAccount::Alex, 200 * AST),
             (TestAccount::Bobo, 200 * AST),
+            (TestAccount::Dino, 100 * AST),
         ])
         .build()
         .execute_with(|| {
@@ -177,10 +180,28 @@ fn bond_and_stake_is_ok() {
             let developer = TestAccount::Alex;
             let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
             register_and_verify(developer, contract_array.clone());
-            let amount_staked = 100 * AST;
-            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked);
+
+            let amount_staked_bobo = 100 * AST;
+            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+
+            let amount_staked_dino = 50 * AST;
+            bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
+
+            let mut stakers_map = BTreeMap::new();
+            stakers_map.insert(TestAccount::Bobo, amount_staked_bobo);
+            stakers_map.insert(TestAccount::Dino, amount_staked_dino);
+            staking_info_verify(
+                contract_array,
+                amount_staked_bobo + amount_staked_dino,
+                stakers_map,
+            );
+            assert!(false);
         });
 }
+
+// ****************************************************************************************************
+// Helper functions
+// ****************************************************************************************************
 
 /// helper function to register and verify if registration is valid
 fn register_and_verify(developer: TestAccount, contract_array: [u8; 20]) {
@@ -247,11 +268,14 @@ fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: 
 
     // call bond_and_stake()
     assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
-    staking_info_verify(contract_array, amount);
 }
 
 /// helper function to check if bonding was successful
-fn staking_info_verify(contract_array: [u8; 20], amount: u128) {
+fn staking_info_verify(
+    contract_array: [u8; 20],
+    amount: u128,
+    stakers_map: BTreeMap<TestAccount, u128>,
+) {
     // prepare input to read staked amount on the contract
     let selector = &Keccak256::digest(b"contract_era_stake(address,uint32)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 68]);
@@ -261,12 +285,24 @@ fn staking_info_verify(contract_array: [u8; 20], amount: u128) {
     era[31] = 1u8;
     input_data[(68 - era.len())..68].copy_from_slice(&era);
 
-    // build expected outcome
+    // Compose expected outcome: 1. add total and rewards
     let total = amount;
     let claimed_reward = 0;
     let mut expected_output = utils::argument_from_u128(total);
     let mut claimed_reward_vec = utils::argument_from_u128(claimed_reward);
     expected_output.append(&mut claimed_reward_vec);
+
+    // Compose expected outcome: 2. add stakers map
+    for staker_amount in stakers_map {
+        println!("staker_amount_pair {:?}", staker_amount);
+        let mut address = staker_amount.0.to_argument();
+        let mut amount =
+            utils::argument_from_u128(TryInto::<u128>::try_into(staker_amount.1).unwrap_or(0));
+        println!("address {:?}, \namount {:?}", address, amount);
+        expected_output.append(&mut address);
+        expected_output.append(&mut amount);
+    }
+
     let expected = Some(Ok(PrecompileOutput {
         exit_status: ExitSucceed::Returned,
         output: expected_output,

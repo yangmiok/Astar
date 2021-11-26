@@ -120,12 +120,24 @@ where
         let staking_info = pallet_dapps_staking::Pallet::<R>::staking_info(&contract_id, era);
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
 
-        // encode output
+        // encode output with total and rewards
         let total = TryInto::<u128>::try_into(staking_info.total).unwrap_or(0);
         let mut output = utils::argument_from_u128(total);
         let claimed_rewards = TryInto::<u128>::try_into(staking_info.claimed_rewards).unwrap_or(0);
         let mut claimed_rewards_vec = utils::argument_from_u128(claimed_rewards);
         output.append(&mut claimed_rewards_vec);
+
+        // encode output for all pairs of staker:amount
+        for staker_amount_pair in staking_info.stakers.clone() {
+            println!("staker_amount_pair {:?}", staker_amount_pair);
+            let mut address = Self::argument_from_account_id(&staker_amount_pair.0);
+            let mut amount =
+                argument_from_u128(TryInto::<u128>::try_into(staker_amount_pair.1).unwrap_or(0));
+
+            println!("address {:?}, \namount {:?}", address, amount);
+            output.append(&mut address);
+            output.append(&mut amount);
+        }
 
         println!("--- precompile staking_info {:?}", staking_info);
         println!("--- precompile output {:?}", output);
@@ -136,6 +148,14 @@ where
             output,
             logs: Default::default(),
         })
+    }
+
+    pub fn argument_from_account_id(account: &R::AccountId) -> Vec<u8> {
+        let mut account_encoded = R::AccountId::encode(account);
+        let encoded_len = account_encoded.len();
+        let mut buffer = vec![0; ARG_SIZE_BYTES - encoded_len];
+        buffer.append(&mut account_encoded);
+        buffer
     }
 
     /// Register contract with the dapp-staking pallet
