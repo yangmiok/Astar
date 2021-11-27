@@ -1,10 +1,14 @@
-use crate::mock::{AST, BLOCK_REWARD, Call, EraIndex, ExternalityBuilder, Origin, Precompiles,
-    TestAccount, advance_to_era, default_context, evm_call, exit_error, initialize_first_block, precompile_address, *};
+use crate::mock::{
+    advance_to_era, default_context, evm_call, exit_error, initialize_first_block,
+    precompile_address, Call, EraIndex, ExternalityBuilder, Origin, Precompiles, TestAccount, AST,
+    BLOCK_REWARD, *,
+};
 use fp_evm::PrecompileOutput;
 use frame_support::{assert_ok, dispatch::Dispatchable};
 use pallet_evm::{ExitSucceed, PrecompileSet};
 use sha3::{Digest, Keccak256};
 use sp_core::H160;
+use sp_runtime::Perbill;
 use sp_std::convert::TryInto;
 use std::collections::BTreeMap;
 
@@ -212,20 +216,42 @@ fn claim_is_ok() {
             let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
             register_and_verify(developer, contract_array.clone());
 
-            let amount_staked_bobo = 120 * AST;
+            let stake_amount_total = 300 * AST;
+            let ratio_bobo = Perbill::from_rational(3u32, 5u32);
+            let ratio_dino = Perbill::from_rational(2u32, 5u32);
+            let amount_staked_bobo = ratio_bobo * stake_amount_total;
             bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
 
-            let amount_staked_dino = 80 * AST;
+            let amount_staked_dino = ratio_dino * stake_amount_total;
             bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
 
+            // advance era and claim reward
             let era = 5;
             advance_to_era(era);
+            claim_and_verify(contract_array, era - 1);
 
-            claim_and_verify(contract_array, era-1);
-
-            assert_eq!(<TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Alex), 2590 * AST);
-            assert_eq!(<TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Bobo), 560 * AST);
-            assert_eq!(<TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Dino), 440 * AST);
+            //check that the reward is payed out to the stakers and the developer
+            let developer_reward = Perbill::from_percent(DEVELOPER_REWARD_PERCENTAGE)
+                * BLOCK_REWARD
+                * BLOCKS_PER_ERA as u128
+                - REGISTER_DEPOSIT;
+            let stakers_reward = Perbill::from_percent(100 - DEVELOPER_REWARD_PERCENTAGE)
+                * BLOCK_REWARD
+                * BLOCKS_PER_ERA as u128;
+            let bobo_reward = ratio_bobo * stakers_reward;
+            let dino_reward = ratio_dino * stakers_reward;
+            assert_eq!(
+                <TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Alex),
+                (200 * AST) + developer_reward
+            );
+            assert_eq!(
+                <TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Bobo),
+                (200 * AST) + bobo_reward
+            );
+            assert_eq!(
+                <TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Dino),
+                (200 * AST) + dino_reward
+            );
         });
 }
 
@@ -312,7 +338,8 @@ fn claim_and_verify(contract_array: [u8; 20], era: EraIndex) {
     println!(
         "--- claim_and_verify contract_array({:?}) {:?}, era {:?}",
         contract_array.len(),
-        contract_array, era
+        contract_array,
+        era
     );
     let staker = TestAccount::Bobo;
     let selector = &Keccak256::digest(b"claim(address,uint128)")[0..4];
