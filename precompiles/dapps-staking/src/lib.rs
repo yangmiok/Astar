@@ -79,6 +79,7 @@ where
 
     /// Fetch registered contract from RegisteredDevelopers storage map
     fn registered_contract(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
+        input.expecting_arguments(1).map_err(|e| exit_error(e))?;
         println!("--- precompile registered_contract() {:?}", input.len());
         let developer_h160 = input.to_h160(1);
         let developer = R::AddressMapping::into_account_id(developer_h160);
@@ -159,18 +160,11 @@ where
         })
     }
 
-    pub fn argument_from_account_id(account: &R::AccountId) -> Vec<u8> {
-        let mut account_encoded = R::AccountId::encode(account);
-        let encoded_len = account_encoded.len();
-        let mut buffer = sp_std::vec![0; ARG_SIZE_BYTES - encoded_len];
-        buffer.append(&mut account_encoded);
-        buffer
-    }
-
     /// Register contract with the dapp-staking pallet
     fn register(input: EvmInArg) -> Result<R::Call, ExitError> {
         println!("--- precompile register() {:?}", input.len());
         input.expecting_arguments(1).map_err(|e| exit_error(e))?;
+
         // parse contract's address
         let contract_h160 = input.to_h160(1);
         // println!("contract_h160 {:?}", contract_h160);
@@ -195,6 +189,32 @@ where
 
         Ok(pallet_dapps_staking::Call::<R>::bond_and_stake { contract_id, value }.into())
     }
+
+    /// Claim rewards for the contract in the dapp-staking pallet
+    fn claim(input: EvmInArg) -> Result<R::Call, ExitError> {
+        println!("--- precompile claim() {:?}", input.len());
+        input.expecting_arguments(2).map_err(|e| exit_error(e))?;
+
+        // parse contract's address
+        let contract_h160 = input.to_h160(1);
+        let contract_id = Self::decode_smart_contract(contract_h160)?;
+
+        // parse era
+        let era = input.to_u256(2).low_u128().saturated_into();
+        println!("--- precompile era value {:?}", era);
+
+        Ok(pallet_dapps_staking::Call::<R>::claim { contract_id, era }.into())
+    }
+
+    /// Store R::AccountId value in the 32 bytes vector as big endian
+    fn argument_from_account_id(account: &R::AccountId) -> Vec<u8> {
+        let mut account_encoded = R::AccountId::encode(account);
+        let encoded_len = account_encoded.len();
+        let mut buffer = sp_std::vec![0; ARG_SIZE_BYTES - encoded_len];
+        buffer.append(&mut account_encoded);
+        buffer
+    }
+
     /// Helper method to decode type SmartContract enum
     fn decode_smart_contract(
         contract_h160: H160,
@@ -248,6 +268,7 @@ where
             // extrinsic calls
             [0x44, 0x20, 0xe4, 0x86] => Self::register(input)?,
             [0x52, 0xb7, 0x3e, 0x41] => Self::bond_and_stake(input)?,
+            [0xc1, 0x3f, 0x4a, 0xf7] => Self::claim(input)?,
             _ => {
                 println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);
                 return Err(ExitError::Other("No method at given selector".into()));

@@ -32,7 +32,7 @@ type Block = frame_system::mocking::MockBlock<TestRuntime>;
 /// Value shouldn't be less than 2 for testing purposes, otherwise we cannot test certain corner cases.
 pub(crate) const MAX_NUMBER_OF_STAKERS: u32 = 4;
 /// Value shouldn't be less than 2 for testing purposes, otherwise we cannot test certain corner cases.
-pub(crate) const MINIMUM_STAKING_AMOUNT: Balance = 10;
+pub(crate) const MINIMUM_STAKING_AMOUNT: Balance = 10 * AST;
 pub(crate) const DEVELOPER_REWARD_PERCENTAGE: u32 = 80;
 pub(crate) const MINIMUM_REMAINING_AMOUNT: Balance = 1;
 pub(crate) const HISTORY_DEPTH: u32 = 30;
@@ -40,11 +40,11 @@ pub(crate) const HISTORY_DEPTH: u32 = 30;
 // Do note that this needs to at least be 3 for tests to be valid. It can be greater but not smaller.
 pub(crate) const BLOCKS_PER_ERA: BlockNumber = 3;
 
-pub(crate) const REGISTER_DEPOSIT: Balance = 10;
+pub(crate) const REGISTER_DEPOSIT: Balance = 10 * AST;
 
 // ignore MILLIAST for easier test handling.
 // reward for dapps-staking will be BLOCK_REWARD/2 = 1000
-pub(crate) const BLOCK_REWARD: Balance = 1000;
+pub(crate) const BLOCK_REWARD: Balance = 1000 * AST;
 
 #[derive(
     Eq,

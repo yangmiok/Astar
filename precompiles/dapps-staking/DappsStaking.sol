@@ -55,5 +55,5 @@ interface DappsStaking {
 
     /// @dev Claim contract's rewards.
     /// Selector: Not implemented
-    function claim(address) external;
+    function claim(address, uint128) external;
 }

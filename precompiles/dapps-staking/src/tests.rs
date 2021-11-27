@@ -1,8 +1,5 @@
-use crate::mock::{
-    advance_to_era, default_context, evm_call, exit_error, initialize_first_block,
-    precompile_address, Call, ExternalityBuilder, Origin, Precompiles, TestAccount, AST,
-    BLOCK_REWARD,
-};
+use crate::mock::{AST, BLOCK_REWARD, Call, EraIndex, ExternalityBuilder, Origin, Precompiles,
+    TestAccount, advance_to_era, default_context, evm_call, exit_error, initialize_first_block, precompile_address, *};
 use fp_evm::PrecompileOutput;
 use frame_support::{assert_ok, dispatch::Dispatchable};
 use pallet_evm::{ExitSucceed, PrecompileSet};
@@ -198,6 +195,40 @@ fn bond_and_stake_is_ok() {
         });
 }
 
+#[test]
+fn claim_is_ok() {
+    ExternalityBuilder::default()
+        .with_balances(vec![
+            (TestAccount::Alex, 200 * AST),
+            (TestAccount::Bobo, 200 * AST),
+            (TestAccount::Dino, 200 * AST),
+        ])
+        .build()
+        .execute_with(|| {
+            initialize_first_block();
+
+            // register new contract by Alex
+            let developer = TestAccount::Alex;
+            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
+            register_and_verify(developer, contract_array.clone());
+
+            let amount_staked_bobo = 120 * AST;
+            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+
+            let amount_staked_dino = 80 * AST;
+            bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
+
+            let era = 5;
+            advance_to_era(era);
+
+            claim_and_verify(contract_array, era-1);
+
+            assert_eq!(<TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Alex), 2590 * AST);
+            assert_eq!(<TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Bobo), 560 * AST);
+            assert_eq!(<TestRuntime as pallet_evm::Config>::Currency::free_balance(TestAccount::Dino), 440 * AST);
+        });
+}
+
 // ****************************************************************************************************
 // Helper functions
 // ****************************************************************************************************
@@ -242,6 +273,13 @@ fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 
         cost: Default::default(),
         logs: Default::default(),
     }));
+
+    // verify that argument check is done in registered_contract
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &selector, None, &default_context()),
+        Some(Err(exit_error("Too few arguments")))
+    );
+
     assert_eq!(
         Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
         expected
@@ -263,6 +301,28 @@ fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: 
     input_data[(68 - staking_amount.len())..68].copy_from_slice(&staking_amount);
 
     // verify that argument check is done in bond_and_stake()
+    assert_ok!(Call::Evm(evm_call(staker.clone(), selector.to_vec())).dispatch(Origin::root()));
+
+    // call bond_and_stake()
+    assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
+}
+
+/// helper function to bond, stake and verify if resulet is OK
+fn claim_and_verify(contract_array: [u8; 20], era: EraIndex) {
+    println!(
+        "--- claim_and_verify contract_array({:?}) {:?}, era {:?}",
+        contract_array.len(),
+        contract_array, era
+    );
+    let staker = TestAccount::Bobo;
+    let selector = &Keccak256::digest(b"claim(address,uint128)")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 68]);
+    input_data[0..4].copy_from_slice(&selector);
+    input_data[16..36].copy_from_slice(&contract_array);
+    let era_array = era.to_be_bytes();
+    input_data[(68 - era_array.len())..68].copy_from_slice(&era_array);
+
+    // verify that argument check is done in claim()
     assert_ok!(Call::Evm(evm_call(staker.clone(), selector.to_vec())).dispatch(Origin::root()));
 
     // call bond_and_stake()
