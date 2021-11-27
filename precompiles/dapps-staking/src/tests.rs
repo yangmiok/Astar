@@ -9,7 +9,6 @@ use pallet_evm::{ExitSucceed, PrecompileSet};
 use sha3::{Digest, Keccak256};
 use sp_core::H160;
 use sp_runtime::Perbill;
-use sp_std::convert::TryInto;
 use std::collections::BTreeMap;
 
 use crate::utils;
@@ -315,6 +314,41 @@ fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 
     );
 }
 
+/// helper function to read ledger storage item
+fn ledger_verify(staker: TestAccount, amount: u128) {
+    println!(
+        "--- ledger account={:?} amount={:?}",
+        staker,
+        amount
+    );
+
+    let selector = &Keccak256::digest(b"ledger(address)")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 36]);
+    input_data[0..4].copy_from_slice(&selector);
+
+    let staker_arg = utils::argument_from_h160(staker.to_h160());
+
+    input_data[4..36].copy_from_slice(&staker_arg);
+
+    let expected = Some(Ok(PrecompileOutput {
+        exit_status: ExitSucceed::Returned,
+        output: utils::argument_from_u128(amount),
+        cost: Default::default(),
+        logs: Default::default(),
+    }));
+
+    // verify that argument check is done in registered_contract
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &selector, None, &default_context()),
+        Some(Err(exit_error("Too few arguments")))
+    );
+
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
+        expected
+    );
+}
+
 /// helper function to read storage with registered contracts
 fn registered_developer_verify(developer: TestAccount, contract_array_h160: [u8; 20]) {
     println!(
@@ -369,6 +403,8 @@ fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: 
 
     // call bond_and_stake()
     assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
+
+    ledger_verify(staker, amount);
 }
 
 /// helper function to bond, stake and verify if resulet is OK
@@ -427,7 +463,7 @@ fn staking_info_verify(
         println!("staker_amount_pair {:?}", staker_amount);
         let mut address = staker_amount.0.to_argument();
         let mut amount =
-            utils::argument_from_u128(TryInto::<u128>::try_into(staker_amount.1).unwrap_or(0));
+            utils::argument_from_u128(staker_amount.1);
         println!("address {:?}, \namount {:?}", address, amount);
         expected_output.append(&mut address);
         expected_output.append(&mut amount);

@@ -134,6 +134,34 @@ where
         })
     }
 
+    /// Fetch Ledger storage map
+    fn ledger(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
+        input.expecting_arguments(1).map_err(|e| exit_error(e))?;
+        println!("--- precompile ledger() {:?}", input.len());
+        let staker_h160 = input.to_h160(1);
+        let staker = R::AddressMapping::into_account_id(staker_h160);
+        println!("--- precompile staker_h160 {:?}", staker_h160);
+        println!("--- precompile staker public key {:?}", staker);
+
+        // call pallet-dapps-staking
+        let amount = pallet_dapps_staking::Ledger::<R>::get(&staker);
+        let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
+
+        println!(
+            "--- precompile staker {:?}, amount {:?}",
+            staker, amount
+        );
+        // compose output
+        let output = argument_from_u128(TryInto::<u128>::try_into(amount).unwrap_or_default());
+
+        Ok(PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            cost: gas_used,
+            output,
+            logs: Default::default(),
+        })
+    }
+
     /// Fetch amount staked and stakers for a contract per era
     fn contract_era_stake(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
         println!("--- precompile contract_era_stake() {:?}", input.len());
@@ -296,6 +324,7 @@ where
             [0x19, 0x2f, 0xb2, 0x56] => return Self::registered_contract(input),
             [0xb4, 0xfe, 0xcd, 0x4f] => return Self::registered_developer(input),
             [0x3b, 0x41, 0xe1, 0xf4] => return Self::contract_era_stake(input),
+            [0xfb, 0xfa, 0x94, 0x1f] => return Self::ledger(input),
 
             // extrinsic calls
             [0x44, 0x20, 0xe4, 0x86] => Self::register(input)?,

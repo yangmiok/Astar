@@ -117,7 +117,7 @@ pub mod pallet {
     /// Bonded amount for the staker
     #[pallet::storage]
     #[pallet::getter(fn ledger)]
-    pub(crate) type Ledger<T: Config> =
+    pub type Ledger<T: Config> =
         StorageMap<_, Blake2_128Concat, T::AccountId, AccountLedger<BalanceOf<T>>, ValueQuery>;
 
     /// The current era index.
