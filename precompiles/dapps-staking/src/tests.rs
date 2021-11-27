@@ -272,7 +272,10 @@ fn register_and_verify(developer: TestAccount, contract_array: [u8; 20]) {
     // call register()
     assert_ok!(Call::Evm(evm_call(developer.clone(), input_data)).dispatch(Origin::root()));
 
-    registered_contract_verify(developer, contract_array);
+    // check the storage after the register
+    registered_contract_verify(developer.clone(), contract_array);
+    registered_developer_verify(developer, contract_array);
+
     // check_register_event(developer, contract_h160);
 }
 
@@ -301,6 +304,41 @@ fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 
     }));
 
     // verify that argument check is done in registered_contract
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &selector, None, &default_context()),
+        Some(Err(exit_error("Too few arguments")))
+    );
+
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
+        expected
+    );
+}
+
+/// helper function to read storage with registered contracts
+fn registered_developer_verify(developer: TestAccount, contract_array_h160: [u8; 20]) {
+    println!(
+        "--- registered_developer_verify contract_array_h160({:?}) {:?}",
+        contract_array_h160.len(),
+        contract_array_h160
+    );
+
+    let selector = &Keccak256::digest(b"registered_developer(address)")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 36]);
+    input_data[0..4].copy_from_slice(&selector);
+
+    let contract = utils::argument_from_h160_array(contract_array_h160);
+
+    input_data[4..36].copy_from_slice(&contract);
+
+    let expected = Some(Ok(PrecompileOutput {
+        exit_status: ExitSucceed::Returned,
+        output: developer.to_argument(),
+        cost: Default::default(),
+        logs: Default::default(),
+    }));
+
+    // verify that argument check is done in registered_developer
     assert_eq!(
         Precompiles::execute(precompile_address(), &selector, None, &default_context()),
         Some(Err(exit_error("Too few arguments")))

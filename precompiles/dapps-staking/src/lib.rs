@@ -86,6 +86,7 @@ where
         println!("--- precompile developer_h160 {:?}", developer_h160);
         println!("--- precompile developer public key {:?}", developer);
 
+        // call pallet-dapps-staking
         let smart_contract = pallet_dapps_staking::RegisteredDevelopers::<R>::get(&developer);
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
 
@@ -93,7 +94,37 @@ where
             "--- precompile developer {:?}, contract {:?}",
             developer, smart_contract
         );
+        // compose output
         let output = argument_from_h160_vec(smart_contract.unwrap_or_default().encode());
+
+        Ok(PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            cost: gas_used,
+            output,
+            logs: Default::default(),
+        })
+    }
+
+    /// Fetch registered developer from RegisteredDapps storage map
+    fn registered_developer(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
+        input.expecting_arguments(1).map_err(|e| exit_error(e))?;
+        println!("--- precompile registered_developer() {:?}", input.len());
+
+        // parse input parameters for pallet-dapps-staking call
+        let contract_h160 = input.to_h160(1);
+        let contract_id = Self::decode_smart_contract(contract_h160)?;
+
+        // call pallet-dapps-staking
+        let developer =
+            pallet_dapps_staking::RegisteredDapps::<R>::get(&contract_id).unwrap_or_default();
+        let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
+
+        println!(
+            "--- precompile developer {:?}, contract {:?}",
+            developer, contract_id
+        );
+        // compose output
+        let output = Self::argument_from_account_id(&developer);
 
         Ok(PrecompileOutput {
             exit_status: ExitSucceed::Returned,
@@ -263,6 +294,7 @@ where
             [0xd7, 0xbe, 0x38, 0x96] => return Self::current_era(),
             [0xb9, 0xb7, 0x0e, 0x8e] => return Self::era_reward_and_stake(input),
             [0x19, 0x2f, 0xb2, 0x56] => return Self::registered_contract(input),
+            [0xb4, 0xfe, 0xcd, 0x4f] => return Self::registered_developer(input),
             [0x3b, 0x41, 0xe1, 0xf4] => return Self::contract_era_stake(input),
 
             // extrinsic calls
