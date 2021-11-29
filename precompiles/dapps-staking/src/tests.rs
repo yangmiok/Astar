@@ -316,11 +316,7 @@ fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 
 
 /// helper function to read ledger storage item
 fn ledger_verify(staker: TestAccount, amount: u128) {
-    println!(
-        "--- ledger account={:?} amount={:?}",
-        staker,
-        amount
-    );
+    println!("--- ledger account={:?} amount={:?}", staker, amount);
 
     let selector = &Keccak256::digest(b"ledger(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
@@ -462,8 +458,7 @@ fn staking_info_verify(
     for staker_amount in stakers_map {
         println!("staker_amount_pair {:?}", staker_amount);
         let mut address = staker_amount.0.to_argument();
-        let mut amount =
-            utils::argument_from_u128(staker_amount.1);
+        let mut amount = utils::argument_from_u128(staker_amount.1);
         println!("address {:?}, \namount {:?}", address, amount);
         expected_output.append(&mut address);
         expected_output.append(&mut amount);

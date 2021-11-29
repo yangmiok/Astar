@@ -47,7 +47,7 @@ impl<'a> EvmInArg<'a> {
     // check that the length of input is as expected
     pub fn expecting_arguments(&self, num: usize) -> Result<(), &'static str> {
         let expected_len = SELECTOR_SIZE_BYTES + ARG_SIZE_BYTES * num;
-        println!("expected_len {:?} actual {:?}", expected_len, self.len());
+        sp_std::if_std! {println!("expected_len {:?} actual {:?}", expected_len, self.len());}
         match self.len() {
             l if l < expected_len => Err("Too few arguments"),
             l if l > expected_len => Err("Too many arguments"),
@@ -57,7 +57,6 @@ impl<'a> EvmInArg<'a> {
 
     /// Parse input and return H160 argument from given position
     pub fn to_h160(&self, position: usize) -> H160 {
-        println!("parse_argument_h160 ({:?}) {:?}", self.len(), self.input);
         let offset = SELECTOR_SIZE_BYTES + ARG_SIZE_BYTES * (position - 1);
         let end = offset + ARG_SIZE_BYTES;
         // H160 has 20 bytes. The first 12 bytes in u256 have no meaning

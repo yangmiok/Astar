@@ -19,17 +19,17 @@ interface DappsStaking {
     function era_reward_and_stake(uint32 era) external view returns (uint128, uint128);
 
     /// @dev Get Bonded amount for the staker (H160).
-    /// Selector: Not implemented
+    /// Selector: fbfa941f
     /// @return Bonded amount for the staker
     function ledger(address staker) external view returns (uint128);
 
     /// @dev Get Developer's address for the provided H160 contract.
-    /// Selector: Not implemented
+    /// Selector: b4fecd4f
     /// @return address as uint256, not as H160
     function registered_developer(address contract_id) external view returns (uint256);
 
     /// @dev Get amount staked and stakers for a contract per era
-    /// Selector: Not implemented
+    /// Selector: 3b41e1f4
     /// The array of 2 stakers is encoded like: [staker1, amount1, staker2, amount2]
     /// @return amount staked on contract, amount of claimed rewards, array of stakers
     function contract_era_stake(address contract_id, uint32 era) external view returns (uint128, uint128, uint256[] memory);
@@ -54,6 +54,6 @@ interface DappsStaking {
     function unbond_unstake_and_withdraw(address, uint128) external;
 
     /// @dev Claim contract's rewards.
-    /// Selector: Not implemented
+    /// Selector: c13f4af7
     function claim(address, uint128) external;
 }
