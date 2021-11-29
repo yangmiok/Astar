@@ -52,11 +52,8 @@ where
         input.expecting_arguments(1).map_err(|e| exit_error(e))?;
         let era = input.to_u256(1).low_u32();
         let reward_and_stake = pallet_dapps_staking::EraRewardsAndStakes::<R>::get(era);
-        let (reward, staked) = if let Some(r) = reward_and_stake {
-            (r.rewards, r.staked)
-        } else {
-            (Zero::zero(), Zero::zero())
-        };
+        let (reward, staked) =
+            reward_and_stake.map_or((Zero::zero(), Zero::zero()), |r| (r.rewards, r.staked));
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
         sp_std::if_std! {
             println!(
