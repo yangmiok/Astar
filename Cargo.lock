@@ -246,7 +246,11 @@ dependencies = [
 
 [[package]]
 name = "astar-runtime"
+<<<<<<< HEAD
 version = "3.2.2"
+=======
+version = "3.1.6"
+>>>>>>> 95f76bd6 (Benchmark results. Version uplift.)
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -5273,7 +5277,7 @@ dependencies = [
 
 [[package]]
 name = "pallet-dapps-staking"
-version = "1.1.2"
+version = "2.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -9234,7 +9238,11 @@ dependencies = [
 
 [[package]]
 name = "shibuya-runtime"
+<<<<<<< HEAD
 version = "3.2.2"
+=======
+version = "3.1.6"
+>>>>>>> 95f76bd6 (Benchmark results. Version uplift.)
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
