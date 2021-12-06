@@ -154,7 +154,8 @@ where
 
         sp_std::if_std! {println!("--- precompile staker {:?}, ledger.locked {:?}", staker, ledger.locked);}
         // compose output
-        let output = argument_from_u128(TryInto::<u128>::try_into(ledger.locked).unwrap_or_default());
+        let output =
+            argument_from_u128(TryInto::<u128>::try_into(ledger.locked).unwrap_or_default());
 
         Ok(PrecompileOutput {
             exit_status: ExitSucceed::Returned,
@@ -265,6 +266,13 @@ where
         Ok(pallet_dapps_staking::Call::<R>::unbond_and_unstake { contract_id, value }.into())
     }
 
+    /// Start unbonding process and unstake balance from the contract.
+    fn withdraw_unbonded() -> Result<R::Call, ExitError> {
+        sp_std::if_std! {println!("--- withdraw_unbonded");}
+
+        Ok(pallet_dapps_staking::Call::<R>::withdraw_unbonded {}.into())
+    }
+
     /// Claim rewards for the contract in the dapp-staking pallet
     fn claim(input: EvmInArg) -> Result<R::Call, ExitError> {
         sp_std::if_std! {println!("--- precompile claim() {:?}", input.len());}
@@ -348,6 +356,7 @@ where
             [0x44, 0x20, 0xe4, 0x86] => Self::register(input)?,
             [0x52, 0xb7, 0x3e, 0x41] => Self::bond_and_stake(input)?,
             [0xc7, 0x84, 0x1d, 0xd2] => Self::unbond_and_unstake(input)?,
+            [0x77, 0xa0, 0xfe, 0x02] => Self::withdraw_unbonded()?,
             [0xc1, 0x3f, 0x4a, 0xf7] => Self::claim(input)?,
             _ => {
                 sp_std::if_std! {println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);}

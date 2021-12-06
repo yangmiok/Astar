@@ -49,9 +49,13 @@ interface DappsStaking {
     /// Selector: 52b73e41
     function bond_and_stake(address, uint128) external;
 
-    /// @dev Unbond, unstake and withdraw provided amount on the contract.
-    /// Selector: Not implemented
-    function unbond_unstake_and_withdraw(address, uint128) external;
+    /// @dev Start unbonding process and unstake balance from the contract.
+    /// Selector: c7841dd2
+    function unbond_and_unstake(address, uint128) external;
+
+    /// @dev Withdraw all funds that have completed the unbonding process.
+    /// Selector: 77a0fe02
+    function withdraw_unbonded() external;
 
     /// @dev Claim contract's rewards.
     /// Selector: c13f4af7

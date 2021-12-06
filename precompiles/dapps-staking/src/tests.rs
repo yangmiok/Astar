@@ -1,7 +1,7 @@
 use crate::mock::{
     advance_to_era, default_context, evm_call, exit_error, initialize_first_block,
     precompile_address, Call, EraIndex, ExternalityBuilder, Origin, Precompiles, TestAccount, AST,
-    BLOCK_REWARD, *,
+    BLOCK_REWARD, UNBONDING_PERIOD, *,
 };
 use fp_evm::PrecompileOutput;
 use frame_support::{assert_ok, dispatch::Dispatchable};
@@ -228,12 +228,11 @@ fn unbond_and_unstake_is_ok() {
 
             let mut stakers_map = BTreeMap::new();
             stakers_map.insert(TestAccount::Dino, amount_staked_dino);
-            staking_info_verify(
-                contract_array,
-                amount_staked_dino,
-                era,
-                stakers_map,
-            );
+            staking_info_verify(contract_array, amount_staked_dino, era, stakers_map);
+
+            // withdraw unbonded funds
+            advance_to_era(era + UNBONDING_PERIOD + 1);
+            withdraw_unbonded_verify(TestAccount::Bobo);
         });
 }
 
@@ -460,7 +459,26 @@ fn unbond_unstake_and_verify(staker: TestAccount, contract_array: [u8; 20], amou
     assert_ok!(Call::Evm(evm_call(staker.clone(), selector.to_vec())).dispatch(Origin::root()));
 
     // call unbond_and_unstake()
+    assert_ok!(Call::Evm(evm_call(staker, input_data)).dispatch(Origin::root()));
+}
+
+/// helper function to withdraw unstaked funds and verify if resulet is OK
+fn withdraw_unbonded_verify(staker: TestAccount) {
+    println!("--- withdraw_unbonded_verify");
+    let selector = &Keccak256::digest(b"withdraw_unbonded()")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 4]);
+    input_data[0..4].copy_from_slice(&selector);
+
+    // call unbond_and_unstake(). Check usable_balance before and after the call
+    assert_ne!(
+        <TestRuntime as pallet_evm::Config>::Currency::free_balance(&staker),
+        <TestRuntime as pallet_evm::Config>::Currency::usable_balance(&staker)
+    );
     assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
+    assert_eq!(
+        <TestRuntime as pallet_evm::Config>::Currency::free_balance(&staker),
+        <TestRuntime as pallet_evm::Config>::Currency::usable_balance(&staker)
+    );
 }
 
 /// helper function to bond, stake and verify if resulet is OK
