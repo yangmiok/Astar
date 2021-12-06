@@ -186,10 +186,10 @@ where
         // encode output with total and rewards
         let total = TryInto::<u128>::try_into(staking_info.total).unwrap_or(0);
         let mut output = utils::argument_from_u128(total);
-        sp_std::if_std! {println!("output-- {:x?}", output);}
+        sp_std::if_std! {println!("output-- {:?}", output);}
         let claimed_rewards = TryInto::<u128>::try_into(staking_info.claimed_rewards).unwrap_or(0);
         let mut claimed_rewards_vec = utils::argument_from_u128(claimed_rewards);
-        sp_std::if_std! {println!("output-- {:x?}", claimed_rewards_vec);}
+        sp_std::if_std! {println!("output-- {:?}", claimed_rewards_vec);}
         output.append(&mut claimed_rewards_vec);
 
         // Encode number of elements of the array
@@ -248,6 +248,21 @@ where
         sp_std::if_std! {println!("--- precompile bond value {:?}", value);}
 
         Ok(pallet_dapps_staking::Call::<R>::bond_and_stake { contract_id, value }.into())
+    }
+
+    /// Start unbonding process and unstake balance from the contract.
+    fn unbond_and_unstake(input: EvmInArg) -> Result<R::Call, ExitError> {
+        input.expecting_arguments(2).map_err(|e| exit_error(e))?;
+
+        // parse contract's address
+        let contract_h160 = input.to_h160(1);
+        let contract_id = Self::decode_smart_contract(contract_h160)?;
+
+        // parse balance to be staked
+        let value = input.to_u256(2).low_u128().saturated_into();
+        sp_std::if_std! {println!("--- precompile unbond value {:?}", value);}
+
+        Ok(pallet_dapps_staking::Call::<R>::unbond_and_unstake { contract_id, value }.into())
     }
 
     /// Claim rewards for the contract in the dapp-staking pallet
@@ -332,6 +347,7 @@ where
             // extrinsic calls
             [0x44, 0x20, 0xe4, 0x86] => Self::register(input)?,
             [0x52, 0xb7, 0x3e, 0x41] => Self::bond_and_stake(input)?,
+            [0xc7, 0x84, 0x1d, 0xd2] => Self::unbond_and_unstake(input)?,
             [0xc1, 0x3f, 0x4a, 0xf7] => Self::claim(input)?,
             _ => {
                 sp_std::if_std! {println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);}

@@ -193,6 +193,45 @@ fn bond_and_stake_is_ok() {
             staking_info_verify(
                 contract_array,
                 amount_staked_bobo + amount_staked_dino,
+                1,
+                stakers_map,
+            );
+        });
+}
+
+#[test]
+fn unbond_and_unstake_is_ok() {
+    ExternalityBuilder::default()
+        .with_balances(vec![
+            (TestAccount::Alex, 200 * AST),
+            (TestAccount::Bobo, 200 * AST),
+            (TestAccount::Dino, 100 * AST),
+        ])
+        .build()
+        .execute_with(|| {
+            initialize_first_block();
+
+            // register new contract by Alex
+            let developer = TestAccount::Alex;
+            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
+            register_and_verify(developer, contract_array.clone());
+
+            let amount_staked_bobo = 100 * AST;
+            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+            let amount_staked_dino = 50 * AST;
+            bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
+
+            // Bobo unstakes all
+            let era = 2;
+            advance_to_era(era);
+            unbond_unstake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+
+            let mut stakers_map = BTreeMap::new();
+            stakers_map.insert(TestAccount::Dino, amount_staked_dino);
+            staking_info_verify(
+                contract_array,
+                amount_staked_dino,
+                era,
                 stakers_map,
             );
         });
@@ -403,6 +442,27 @@ fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: 
     ledger_verify(staker, amount);
 }
 
+/// helper function to unbond, unstake and verify if resulet is OK
+fn unbond_unstake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: u128) {
+    println!(
+        "--- unbond_unstake_and_verify contract_array({:?}) {:?}",
+        contract_array.len(),
+        contract_array
+    );
+    let selector = &Keccak256::digest(b"unbond_and_unstake(address,uint128)")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 68]);
+    input_data[0..4].copy_from_slice(&selector);
+    input_data[16..36].copy_from_slice(&contract_array);
+    let staking_amount = amount.to_be_bytes();
+    input_data[(68 - staking_amount.len())..68].copy_from_slice(&staking_amount);
+
+    // verify that argument check is done in unbond_unstake()
+    assert_ok!(Call::Evm(evm_call(staker.clone(), selector.to_vec())).dispatch(Origin::root()));
+
+    // call unbond_and_unstake()
+    assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
+}
+
 /// helper function to bond, stake and verify if resulet is OK
 fn claim_and_verify(contract_array: [u8; 20], era: EraIndex) {
     println!(
@@ -430,6 +490,7 @@ fn claim_and_verify(contract_array: [u8; 20], era: EraIndex) {
 fn staking_info_verify(
     contract_array: [u8; 20],
     amount: u128,
+    era: EraIndex,
     stakers_map: BTreeMap<TestAccount, u128>,
 ) {
     // prepare input to read staked amount on the contract
@@ -437,9 +498,9 @@ fn staking_info_verify(
     let mut input_data = Vec::<u8>::from([0u8; 68]);
     input_data[0..4].copy_from_slice(&selector);
     input_data[16..36].copy_from_slice(&contract_array);
-    let mut era = Vec::<u8>::from([0u8; 32]);
-    era[31] = 1u8;
-    input_data[(68 - era.len())..68].copy_from_slice(&era);
+    let mut era_vec = Vec::<u8>::from([0u8; 32]);
+    era_vec[31] = era as u8;
+    input_data[(68 - era_vec.len())..68].copy_from_slice(&era_vec);
 
     // Compose expected outcome: 1. add total and rewards
     let total = amount;
