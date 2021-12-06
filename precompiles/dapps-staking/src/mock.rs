@@ -36,6 +36,8 @@ pub(crate) const MINIMUM_STAKING_AMOUNT: Balance = 10 * AST;
 pub(crate) const DEVELOPER_REWARD_PERCENTAGE: u32 = 80;
 pub(crate) const MINIMUM_REMAINING_AMOUNT: Balance = 1;
 pub(crate) const HISTORY_DEPTH: u32 = 30;
+pub(crate) const MAX_UNLOCKING_CHUNKS: u32 = 4;
+pub(crate) const UNBONDING_PERIOD: EraIndex = 3;
 
 // Do note that this needs to at least be 3 for tests to be valid. It can be greater but not smaller.
 pub(crate) const BLOCKS_PER_ERA: BlockNumber = 3;
@@ -255,6 +257,8 @@ parameter_types! {
     pub const DappsStakingPalletId: PalletId = PalletId(*b"mokdpstk");
     pub const MinimumRemainingAmount: Balance = MINIMUM_REMAINING_AMOUNT;
     pub const BonusEraDuration: u32 = 3;
+    pub const MaxUnlockingChunks: u32 = MAX_UNLOCKING_CHUNKS;
+    pub const UnbondingPeriod: EraIndex = UNBONDING_PERIOD;
 }
 
 impl pallet_dapps_staking::Config for TestRuntime {
@@ -271,6 +275,8 @@ impl pallet_dapps_staking::Config for TestRuntime {
     type MinimumStakingAmount = MinimumStakingAmount;
     type PalletId = DappsStakingPalletId;
     type MinimumRemainingAmount = MinimumRemainingAmount;
+    type MaxUnlockingChunks = MaxUnlockingChunks;
+    type UnbondingPeriod = UnbondingPeriod;
 }
 
 pub struct ExternalityBuilder {

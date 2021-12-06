@@ -149,12 +149,12 @@ where
         }
 
         // call pallet-dapps-staking
-        let amount = pallet_dapps_staking::Ledger::<R>::get(&staker);
+        let ledger = pallet_dapps_staking::Ledger::<R>::get(&staker);
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
 
-        sp_std::if_std! {println!("--- precompile staker {:?}, amount {:?}", staker, amount);}
+        sp_std::if_std! {println!("--- precompile staker {:?}, ledger.locked {:?}", staker, ledger.locked);}
         // compose output
-        let output = argument_from_u128(TryInto::<u128>::try_into(amount).unwrap_or_default());
+        let output = argument_from_u128(TryInto::<u128>::try_into(ledger.locked).unwrap_or_default());
 
         Ok(PrecompileOutput {
             exit_status: ExitSucceed::Returned,

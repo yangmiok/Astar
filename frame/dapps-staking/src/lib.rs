@@ -201,7 +201,7 @@ where
 pub struct AccountLedger<Balance: HasCompact> {
     /// Total balance locked.
     #[codec(compact)]
-    locked: Balance,
+    pub locked: Balance,
     /// Information about unbonding chunks.
     unbonding_info: UnbondingInfo<Balance>,
 }
