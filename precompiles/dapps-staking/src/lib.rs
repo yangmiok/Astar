@@ -383,8 +383,12 @@ where
         let origin = R::AddressMapping::into_account_id(context.caller);
         sp_std::if_std! {println!("--> precompile origin = {}", origin);}
         let post_info = call.dispatch(Some(origin).into()).map_err(|e| {
-            sp_std::if_std! {println!("!!!!!!!!!!! ERROR={:x?}", e.error);}
-            ExitError::Other("Method call via EVM failed".into())
+            let error_text = match e.error {
+                sp_runtime::DispatchError::Module { message, .. } => message,
+                _ => Some("No error Info"),
+            };
+            sp_std::if_std! {println!("!!!!!!!!!!! ERROR={:x?}", error_text);}
+            ExitError::Other(error_text.unwrap_or_default().into())
         })?;
         sp_std::if_std! {println!("--> precompile post_info ={:?}", post_info);}
 

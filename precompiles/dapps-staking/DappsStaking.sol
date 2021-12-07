@@ -3,7 +3,7 @@
 pragma solidity >=0.7.0;
 
 /// Interface to the precompiled contract on Shibuya/Shiden/Astar
-/// Predeployed on the address 0x0000000000000000000000000000000000005001
+/// Predeployed at the address 0x0000000000000000000000000000000000005001
 interface DappsStaking {
 
     // Storage getters

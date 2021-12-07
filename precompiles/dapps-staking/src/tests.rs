@@ -152,6 +152,31 @@ fn era_reward_and_stake_too_many_arguments_nok() {
 }
 
 #[test]
+fn error_mapping_is_ok() {
+    ExternalityBuilder::default()
+        .with_balances(vec![(TestAccount::Alex, 200 * AST)])
+        .build()
+        .execute_with(|| {
+            initialize_first_block();
+            let developer = TestAccount::Alex;
+            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
+            register_and_verify(developer.clone(), contract_array.clone());
+
+            // attempt to register the same contract
+            let selector = &Keccak256::digest(b"register(address)")[0..4];
+            let mut input_data = Vec::<u8>::from([0u8; 36]);
+            input_data[0..4].copy_from_slice(&selector);
+            input_data[16..36].copy_from_slice(&contract_array);
+            let expected = Some(Err(exit_error("AlreadyRegisteredContract")));
+
+            assert_eq!(
+                Precompiles::execute(precompile_address(), &input_data, None, &default_context(),),
+                expected
+            );
+        });
+}
+
+#[test]
 fn register_is_ok() {
     ExternalityBuilder::default()
         .with_balances(vec![(TestAccount::Alex, 200 * AST)])
