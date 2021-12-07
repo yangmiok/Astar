@@ -36,8 +36,10 @@ impl<R> ShibuyaNetworkPrecompiles<R> {
 /// 1024-2047 Precompiles that are not in Ethereum Mainnet
 impl<R> PrecompileSet for ShibuyaNetworkPrecompiles<R>
 where
-    R: pallet_evm::Config + pallet_session::Config + pallet_collator_selection::Config
-    + pallet_dapps_staking::Config,
+    R: pallet_evm::Config
+        + pallet_session::Config
+        + pallet_collator_selection::Config
+        + pallet_dapps_staking::Config,
     <R::Call as Dispatchable>::Origin: From<Option<R::AccountId>>,
     R::Call: From<pallet_session::Call<R>>
         + From<pallet_collator_selection::Call<R>>
