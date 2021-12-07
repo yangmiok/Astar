@@ -9301,6 +9301,7 @@ dependencies = [
  "pallet-evm-precompile-simple",
  "pallet-identity",
  "pallet-multisig",
+ "pallet-precompile-dapps-staking",
  "pallet-precompile-staking",
  "pallet-session",
  "pallet-sudo",
