@@ -343,12 +343,6 @@ fn register_and_verify(developer: TestAccount, contract_array: [u8; 20]) {
 
 /// helper function to read storage with registered contracts
 fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 20]) {
-    println!(
-        "--- registered_contract_verify contract_array_h160({:?}) {:?}",
-        contract_array_h160.len(),
-        contract_array_h160
-    );
-
     let selector = &Keccak256::digest(b"registered_contract(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
     input_data[0..4].copy_from_slice(&selector);
@@ -379,8 +373,6 @@ fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 
 
 /// helper function to read ledger storage item
 fn ledger_verify(staker: TestAccount, amount: u128) {
-    println!("--- ledger account={:?} amount={:?}", staker, amount);
-
     let selector = &Keccak256::digest(b"ledger(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
     input_data[0..4].copy_from_slice(&selector);
@@ -410,12 +402,6 @@ fn ledger_verify(staker: TestAccount, amount: u128) {
 
 /// helper function to read storage with registered contracts
 fn registered_developer_verify(developer: TestAccount, contract_array_h160: [u8; 20]) {
-    println!(
-        "--- registered_developer_verify contract_array_h160({:?}) {:?}",
-        contract_array_h160.len(),
-        contract_array_h160
-    );
-
     let selector = &Keccak256::digest(b"registered_developer(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
     input_data[0..4].copy_from_slice(&selector);
@@ -445,11 +431,6 @@ fn registered_developer_verify(developer: TestAccount, contract_array_h160: [u8;
 
 /// helper function to bond, stake and verify if resulet is OK
 fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: u128) {
-    println!(
-        "--- bond_stake_and_verify contract_array({:?}) {:?}",
-        contract_array.len(),
-        contract_array
-    );
     let selector = &Keccak256::digest(b"bond_and_stake(address,uint128)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 68]);
     input_data[0..4].copy_from_slice(&selector);
@@ -468,11 +449,6 @@ fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: 
 
 /// helper function to unbond, unstake and verify if resulet is OK
 fn unbond_unstake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: u128) {
-    println!(
-        "--- unbond_unstake_and_verify contract_array({:?}) {:?}",
-        contract_array.len(),
-        contract_array
-    );
     let selector = &Keccak256::digest(b"unbond_and_unstake(address,uint128)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 68]);
     input_data[0..4].copy_from_slice(&selector);
@@ -489,7 +465,6 @@ fn unbond_unstake_and_verify(staker: TestAccount, contract_array: [u8; 20], amou
 
 /// helper function to withdraw unstaked funds and verify if resulet is OK
 fn withdraw_unbonded_verify(staker: TestAccount) {
-    println!("--- withdraw_unbonded_verify");
     let selector = &Keccak256::digest(b"withdraw_unbonded()")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 4]);
     input_data[0..4].copy_from_slice(&selector);
@@ -508,12 +483,6 @@ fn withdraw_unbonded_verify(staker: TestAccount) {
 
 /// helper function to bond, stake and verify if resulet is OK
 fn claim_and_verify(contract_array: [u8; 20], era: EraIndex) {
-    println!(
-        "--- claim_and_verify contract_array({:?}) {:?}, era {:?}",
-        contract_array.len(),
-        contract_array,
-        era
-    );
     let staker = TestAccount::Bobo;
     let selector = &Keccak256::digest(b"claim(address,uint128)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 68]);
@@ -560,10 +529,8 @@ fn staking_info_verify(
 
     // Compose expected outcome: 3. add stakers map as array [staker1, amount1, staker2, amount2]
     for staker_amount in stakers_map {
-        println!("staker_amount_pair {:?}", staker_amount);
         let mut address = staker_amount.0.to_argument();
         let mut amount = utils::argument_from_u128(staker_amount.1);
-        println!("address {:?}, \namount {:?}", address, amount);
         expected_output.append(&mut address);
         expected_output.append(&mut amount);
     }

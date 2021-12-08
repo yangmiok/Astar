@@ -32,12 +32,6 @@ where
     fn current_era() -> Result<PrecompileOutput, ExitError> {
         let current_era = pallet_dapps_staking::CurrentEra::<R>::get();
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
-        sp_std::if_std! {
-            println!(
-                "--- precompile DappsStaking response: current_era era={:?} gas_used={:?}",
-                current_era, gas_used
-            );
-        }
         let output = utils::argument_from_u32(current_era);
 
         Ok(PrecompileOutput {
@@ -56,11 +50,6 @@ where
         let (reward, staked) =
             reward_and_stake.map_or((Zero::zero(), Zero::zero()), |r| (r.rewards, r.staked));
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
-        sp_std::if_std! {
-            println!(
-            "--- precompile DappsStaking response: era={:?}, reward={:?} staked ={:?} gas_used={:?}",
-            era, reward, staked, gas_used
-        );}
 
         let reward = TryInto::<u128>::try_into(reward).unwrap_or(0);
         let mut output = utils::argument_from_u128(reward);
@@ -80,23 +69,13 @@ where
     /// Fetch registered contract from RegisteredDevelopers storage map
     fn registered_contract(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
         input.expecting_arguments(1).map_err(|e| exit_error(e))?;
-        sp_std::if_std! {println!("--- precompile registered_contract() {:?}", input.len());}
         let developer_h160 = input.to_h160(1);
         let developer = R::AddressMapping::into_account_id(developer_h160);
-        sp_std::if_std! {
-            println!("--- precompile developer_h160 {:?}", developer_h160);
-            println!("--- precompile developer public key {:?}", developer);
-        }
+
         // call pallet-dapps-staking
         let smart_contract = pallet_dapps_staking::RegisteredDevelopers::<R>::get(&developer);
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
 
-        sp_std::if_std! {
-            println!(
-                "--- precompile developer {:?}, contract {:?}",
-                developer, smart_contract
-        );
-        }
         // compose output
         let output = argument_from_h160_vec(smart_contract.unwrap_or_default().encode());
 
@@ -111,7 +90,6 @@ where
     /// Fetch registered developer from RegisteredDapps storage map
     fn registered_developer(input: EvmInArg) -> Result<PrecompileOutput, ExitError> {
         input.expecting_arguments(1).map_err(|e| exit_error(e))?;
-        sp_std::if_std! {println!("--- precompile registered_developer() {:?}", input.len());}
 
         // parse input parameters for pallet-dapps-staking call
         let contract_h160 = input.to_h160(1);
@@ -122,12 +100,6 @@ where
             pallet_dapps_staking::RegisteredDapps::<R>::get(&contract_id).unwrap_or_default();
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
 
-        sp_std::if_std! {
-            println!(
-                "--- precompile developer {:?}, contract {:?}",
-                developer, contract_id
-        );
-        }
         // compose output
         let output = Self::argument_from_account_id(&developer);
 
@@ -144,16 +116,11 @@ where
         input.expecting_arguments(1).map_err(|e| exit_error(e))?;
         let staker_h160 = input.to_h160(1);
         let staker = R::AddressMapping::into_account_id(staker_h160);
-        sp_std::if_std! {
-            println!("--- precompile staker_h160 {:?}", staker_h160);
-            println!("--- precompile staker public key {:?}", staker);
-        }
 
         // call pallet-dapps-staking
         let ledger = pallet_dapps_staking::Ledger::<R>::get(&staker);
         let gas_used = R::GasWeightMapping::weight_to_gas(R::DbWeight::get().read);
 
-        sp_std::if_std! {println!("--- precompile staker {:?}, ledger.locked {:?}", staker, ledger.locked);}
         // compose output
         let output =
             argument_from_u128(TryInto::<u128>::try_into(ledger.locked).unwrap_or_default());
@@ -174,12 +141,6 @@ where
         let contract_h160 = input.to_h160(1);
         let contract_id = Self::decode_smart_contract(contract_h160)?;
         let era = input.to_u256(2).low_u32();
-        sp_std::if_std! {
-            println!(
-                "--- precompile contract_id={:?}, era={:?}",
-                contract_id, era
-            );
-        }
 
         // call pallet-dapps-staking
         let staking_info = pallet_dapps_staking::Pallet::<R>::staking_info(&contract_id, era);
@@ -188,10 +149,8 @@ where
         // encode output with total and rewards
         let total = TryInto::<u128>::try_into(staking_info.total).unwrap_or(0);
         let mut output = utils::argument_from_u128(total);
-        sp_std::if_std! {println!("output-- {:?}", output);}
         let claimed_rewards = TryInto::<u128>::try_into(staking_info.claimed_rewards).unwrap_or(0);
         let mut claimed_rewards_vec = utils::argument_from_u128(claimed_rewards);
-        sp_std::if_std! {println!("output-- {:?}", claimed_rewards_vec);}
         output.append(&mut claimed_rewards_vec);
 
         // Encode number of elements of the array
@@ -199,10 +158,8 @@ where
         // the number of elements is double the size of entries in the stakers map
         // see https://docs.soliditylang.org/en/v0.8.10/abi-spec.html#mapping-solidity-to-abi-types
         let mut offset = utils::argument_from_u32(0x60_u32);
-        sp_std::if_std! {println!("output-- {:?}", offset);}
         output.append(&mut offset);
         let mut num_elements = utils::argument_from_u32((staking_info.stakers.len() * 2) as u32);
-        sp_std::if_std! {println!("output-- {:?}", num_elements);}
         output.append(&mut num_elements);
 
         // encode output for all pairs of staker:amount
@@ -210,9 +167,7 @@ where
             let mut address = Self::argument_from_account_id(&staker_amount_pair.0);
             let mut amount =
                 argument_from_u128(TryInto::<u128>::try_into(staker_amount_pair.1).unwrap_or(0));
-            sp_std::if_std! {println!("output-- {:?}", address);}
             output.append(&mut address);
-            sp_std::if_std! {println!("output-- {:?}", amount);}
             output.append(&mut amount);
         }
 
@@ -226,7 +181,6 @@ where
 
     /// Register contract with the dapp-staking pallet
     fn register(input: EvmInArg) -> Result<R::Call, ExitError> {
-        sp_std::if_std! {println!("--- precompile register() {:?}", input.len());}
         input.expecting_arguments(1).map_err(|e| exit_error(e))?;
 
         // parse contract's address
@@ -247,7 +201,6 @@ where
 
         // parse balance to be staked
         let value = input.to_u256(2).low_u128().saturated_into();
-        sp_std::if_std! {println!("--- precompile bond value {:?}", value);}
 
         Ok(pallet_dapps_staking::Call::<R>::bond_and_stake { contract_id, value }.into())
     }
@@ -262,21 +215,17 @@ where
 
         // parse balance to be staked
         let value = input.to_u256(2).low_u128().saturated_into();
-        sp_std::if_std! {println!("--- precompile unbond value {:?}", value);}
 
         Ok(pallet_dapps_staking::Call::<R>::unbond_and_unstake { contract_id, value }.into())
     }
 
     /// Start unbonding process and unstake balance from the contract.
     fn withdraw_unbonded() -> Result<R::Call, ExitError> {
-        sp_std::if_std! {println!("--- withdraw_unbonded");}
-
         Ok(pallet_dapps_staking::Call::<R>::withdraw_unbonded {}.into())
     }
 
     /// Claim rewards for the contract in the dapp-staking pallet
     fn claim(input: EvmInArg) -> Result<R::Call, ExitError> {
-        sp_std::if_std! {println!("--- precompile claim() {:?}", input.len());}
         input.expecting_arguments(2).map_err(|e| exit_error(e))?;
 
         // parse contract's address
@@ -285,7 +234,6 @@ where
 
         // parse era
         let era = input.to_u256(2).low_u128().saturated_into();
-        sp_std::if_std! {println!("--- precompile era value {:?}", era);}
 
         Ok(pallet_dapps_staking::Call::<R>::claim { contract_id, era }.into())
     }
@@ -314,7 +262,6 @@ where
             &mut &contract_enum_encoded[..21],
         )
         .map_err(|_| exit_error("Error while decoding SmartContract"))?;
-        sp_std::if_std! {println!("--- precompile smart_contract decoded {:?}", smart_contract);}
 
         Ok(smart_contract)
     }
@@ -334,14 +281,6 @@ where
         target_gas: Option<u64>,
         context: &Context,
     ) -> Result<PrecompileOutput, ExitError> {
-        sp_std::if_std! {
-            println!(
-                "*\n*************** DappsStakingWrapper execute(), len={:?} ************************",
-                input.len(),
-            );
-            println!("--- precompile context.caller={:?}", context.caller);
-        }
-
         let input = EvmInArg::new(&input);
         let selector = input.selector().map_err(|e| exit_error(e))?;
         let call = match selector {
@@ -360,42 +299,29 @@ where
             [0x77, 0xa0, 0xfe, 0x02] => Self::withdraw_unbonded()?,
             [0xc1, 0x3f, 0x4a, 0xf7] => Self::claim(input)?,
             _ => {
-                sp_std::if_std! {println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);}
-                return Err(ExitError::Other("No method at given selector".into()));
+                return Err(exit_error("No method at given selector"));
             }
         };
 
         let info = call.get_dispatch_info();
-        sp_std::if_std! {println!("--- precompile info ={:?}", info);}
         if let Some(gas_limit) = target_gas {
             let required_gas = R::GasWeightMapping::weight_to_gas(info.weight);
-            sp_std::if_std! {
-                println!(
-                    "--- precompile required_gas={:?}, gas_limit={:?}",
-                    required_gas, gas_limit
-                );
-            }
             if required_gas > gas_limit {
-                sp_std::if_std! {println!("--- precompile !!!!!!! OutOfGas !!!! ");}
                 return Err(ExitError::OutOfGas);
             }
         }
 
         let origin = R::AddressMapping::into_account_id(context.caller);
-        sp_std::if_std! {println!("--> precompile origin = {}", origin);}
         let post_info = call.dispatch(Some(origin).into()).map_err(|e| {
             let error_text = match e.error {
                 sp_runtime::DispatchError::Module { message, .. } => message,
                 _ => Some("No error Info"),
             };
-            sp_std::if_std! {println!("!!!!!!!!!!! ERROR={:x?}", error_text);}
             exit_error(error_text.unwrap_or_default())
         })?;
-        sp_std::if_std! {println!("--> precompile post_info ={:?}", post_info);}
 
         let gas_used =
             R::GasWeightMapping::weight_to_gas(post_info.actual_weight.unwrap_or(info.weight));
-        sp_std::if_std! {println!("--> precompile gas_used ={:?}", gas_used);}
 
         Ok(PrecompileOutput {
             exit_status: ExitSucceed::Returned,

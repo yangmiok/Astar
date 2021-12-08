@@ -41,7 +41,6 @@ impl<'a> EvmInArg<'a> {
     /// check that the length of input is as expected
     pub fn expecting_arguments(&self, num: usize) -> Result<(), &'static str> {
         let expected_len = SELECTOR_SIZE_BYTES + ARG_SIZE_BYTES * num;
-        sp_std::if_std! {println!("expected_len {:?} actual {:?}", expected_len, self.len());}
         match self.len() {
             l if l < expected_len => Err("Too few arguments"),
             l if l > expected_len => Err("Too many arguments"),
