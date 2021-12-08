@@ -21,18 +21,12 @@ pub struct EvmInArg<'a> {
     pub input: &'a [u8],
 }
 
-// impl<'a> From<&'a [u8]> for EvmInArg<'a> {
-//     fn from(input: &'a [u8]) -> EvmInArg<'a> {
-//         EvmInArg { input }
-//     }
-// }
-
 impl<'a> EvmInArg<'a> {
     pub fn new(input: &'a [u8]) -> Self {
         Self { input }
     }
 
-    // parse selector from the first 4 bytes.
+    /// parse selector from the first 4 bytes.
     pub fn selector(&self) -> Result<[u8; SELECTOR_SIZE_BYTES], &'static str> {
         match self.len() {
             l if l < SELECTOR_SIZE_BYTES => Err("Selector too short"),
@@ -44,7 +38,7 @@ impl<'a> EvmInArg<'a> {
         }
     }
 
-    // check that the length of input is as expected
+    /// check that the length of input is as expected
     pub fn expecting_arguments(&self, num: usize) -> Result<(), &'static str> {
         let expected_len = SELECTOR_SIZE_BYTES + ARG_SIZE_BYTES * num;
         sp_std::if_std! {println!("expected_len {:?} actual {:?}", expected_len, self.len());}
@@ -70,7 +64,7 @@ impl<'a> EvmInArg<'a> {
         sp_core::U256::from_big_endian(&self.input[offset..end])
     }
 
-    // length for the struct
+    /// The length of the input argument
     pub fn len(&self) -> usize {
         self.input.len()
     }

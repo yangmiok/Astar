@@ -232,12 +232,6 @@ impl<AccountId> Default for MockSmartContract<AccountId> {
     }
 }
 
-// impl MockSmartContract<AccountId> {
-//     fn create(repeat_address: u8) -> Self {
-//         MockSmartContract::Evm(H160::repeat_byte(repeat_address))
-//     }
-// }
-
 impl<AccountId> pallet_dapps_staking::IsContract for MockSmartContract<AccountId> {
     fn is_valid(&self) -> bool {
         match self {
@@ -369,26 +363,6 @@ pub fn initialize_first_block() {
     DappsStaking::on_initialize(System::block_number());
     run_to_block(2);
 }
-
-// // Clears all events
-// pub fn clear_all_events() {
-//     System::reset_events();
-// }
-
-// // Used to get a vec of all dapps staking events
-// pub fn dapps_staking_events() -> Vec<pallet_dapps_staking::Event<TestRuntime>> {
-//     System::events()
-//         .into_iter()
-//         .map(|r| r.event)
-//         .filter_map(|e| {
-//             if let Event::DappsStaking(inner) = e {
-//                 Some(inner)
-//             } else {
-//                 None
-//             }
-//         })
-//         .collect()
-// }
 
 /// default evm context
 pub fn default_context() -> evm::Context {

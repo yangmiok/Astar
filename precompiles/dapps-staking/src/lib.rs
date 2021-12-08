@@ -4,13 +4,14 @@
 
 use codec::{Decode, Encode};
 use fp_evm::{Context, ExitError, ExitSucceed, PrecompileOutput};
-use frame_support::dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo};
-use frame_support::traits::Get;
+use frame_support::{
+    dispatch::{Dispatchable, GetDispatchInfo, PostDispatchInfo},
+    traits::Get,
+};
 use pallet_evm::{AddressMapping, GasWeightMapping, Precompile};
 use sp_core::H160;
 use sp_runtime::traits::{SaturatedConversion, Zero};
-use sp_std::convert::TryInto;
-use sp_std::{marker::PhantomData, vec::Vec};
+use sp_std::{convert::TryInto, marker::PhantomData, vec::Vec};
 extern crate alloc;
 
 mod utils;
@@ -388,7 +389,7 @@ where
                 _ => Some("No error Info"),
             };
             sp_std::if_std! {println!("!!!!!!!!!!! ERROR={:x?}", error_text);}
-            ExitError::Other(error_text.unwrap_or_default().into())
+            exit_error(error_text.unwrap_or_default())
         })?;
         sp_std::if_std! {println!("--> precompile post_info ={:?}", post_info);}
 

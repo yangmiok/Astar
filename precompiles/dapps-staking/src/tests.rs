@@ -587,12 +587,3 @@ fn staking_info_verify(
         expected
     );
 }
-
-// Check Register event
-// pub fn check_register_event(developer: H160, contract_id: H160) {
-//     System::assert_last_event(Event::DappsStaking(
-//         <TestRuntime as pallet_dapps_staking::Config>::Event::NewContract(
-//         developer,
-//         contract_id,
-//     )));
-// }
