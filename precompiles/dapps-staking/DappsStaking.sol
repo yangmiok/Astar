@@ -20,9 +20,9 @@ interface DappsStaking {
     /// @return Total staked amount for the given era
     function read_era_staked(uint32 era) external view returns (uint128);
 
-    /// @dev Read Locked amount for the staker
-    /// @return Locked amount for the staker
-    function read_ledger(address staker) external view returns (uint128);
+    /// @dev Read Staked amount for the staker
+    /// @return Staked amount for the staker
+    function read_staked_amount(address staker) external view returns (uint128);
 
     /// @dev Read stakers on the contract in the given era
     /// @return The array of stakers in the given era
