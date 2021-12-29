@@ -1,13 +1,13 @@
 use crate::mock::{
     advance_to_era, default_context, evm_call, exit_error, initialize_first_block,
-    precompile_address, Call, EraIndex, ExternalityBuilder, Origin, Precompiles, TestAccount, AST,
-    BLOCK_REWARD, UNBONDING_PERIOD, *,
+    precompile_address, Call, DappsStaking, EraIndex, ExternalityBuilder, Origin, Precompiles,
+    TestAccount, AST, BLOCK_REWARD, UNBONDING_PERIOD, *,
 };
+use codec::Encode;
 use fp_evm::PrecompileOutput;
 use frame_support::{assert_ok, dispatch::Dispatchable};
 use pallet_evm::{ExitSucceed, PrecompileSet};
 use sha3::{Digest, Keccak256};
-use sp_core::H160;
 use sp_runtime::Perbill;
 use std::collections::BTreeMap;
 
@@ -61,7 +61,7 @@ fn current_era_is_ok() {
     ExternalityBuilder::default().build().execute_with(|| {
         initialize_first_block();
 
-        let selector = &Keccak256::digest(b"current_era()")[0..4];
+        let selector = &Keccak256::digest(b"read_current_era()")[0..4];
         let mut expected_era = vec![0u8; 32];
         expected_era[31] = 1;
 
@@ -94,12 +94,12 @@ fn current_era_is_ok() {
 }
 
 #[test]
-fn era_reward_and_stake_is_ok() {
+fn read_era_reward_is_ok() {
     ExternalityBuilder::default().build().execute_with(|| {
         initialize_first_block();
 
         // build input for the call
-        let selector = &Keccak256::digest(b"era_reward_and_stake(uint32)")[0..4];
+        let selector = &Keccak256::digest(b"read_era_reward(uint32)")[0..4];
         let mut input_data = Vec::<u8>::from([0u8; 36]);
         input_data[0..4].copy_from_slice(&selector);
         let era = [0u8; 32];
@@ -107,10 +107,7 @@ fn era_reward_and_stake_is_ok() {
 
         // build expected outcome
         let reward = BLOCK_REWARD;
-        let mut expected_output = utils::argument_from_u128(reward);
-        let staked = 0;
-        let mut staked_vec = utils::argument_from_u128(staked);
-        expected_output.append(&mut staked_vec);
+        let expected_output = utils::argument_from_u128(reward);
         let expected = Some(Ok(PrecompileOutput {
             exit_status: ExitSucceed::Returned,
             output: expected_output,
@@ -118,13 +115,13 @@ fn era_reward_and_stake_is_ok() {
             logs: Default::default(),
         }));
 
-        // verify that argument check is done in era_reward_and_stake()
+        // verify that argument check is done in read_era_reward()
         assert_eq!(
             Precompiles::execute(precompile_address(), &selector, None, &default_context()),
             Some(Err(exit_error("Too few arguments")))
         );
 
-        // execute and verify era_reward_and_stake() query
+        // execute and verify read_era_reward() query
         assert_eq!(
             Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
             expected
@@ -133,12 +130,48 @@ fn era_reward_and_stake_is_ok() {
 }
 
 #[test]
-fn era_reward_and_stake_too_many_arguments_nok() {
+fn read_era_staked_is_ok() {
     ExternalityBuilder::default().build().execute_with(|| {
         initialize_first_block();
 
         // build input for the call
-        let selector = &Keccak256::digest(b"era_reward_and_stake(uint32)")[0..4];
+        let selector = &Keccak256::digest(b"read_era_staked(uint32)")[0..4];
+        let mut input_data = Vec::<u8>::from([0u8; 36]);
+        input_data[0..4].copy_from_slice(&selector);
+        let era = [0u8; 32];
+        input_data[4..36].copy_from_slice(&era);
+
+        // build expected outcome
+        let staked = 0;
+        let expected_output = utils::argument_from_u128(staked);
+        let expected = Some(Ok(PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output: expected_output,
+            cost: Default::default(),
+            logs: Default::default(),
+        }));
+
+        // verify that argument check is done in read_era_staked()
+        assert_eq!(
+            Precompiles::execute(precompile_address(), &selector, None, &default_context()),
+            Some(Err(exit_error("Too few arguments")))
+        );
+
+        // execute and verify read_era_staked() query
+        assert_eq!(
+            Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
+            expected
+        );
+    });
+}
+
+#[test]
+fn read_era_reward_too_many_arguments_nok() {
+    ExternalityBuilder::default().build().execute_with(|| {
+        initialize_first_block();
+
+        // build input for the call
+        let selector = &Keccak256::digest(b"read_era_reward(uint32)")[0..4];
         let mut input_data = Vec::<u8>::from([0u8; 37]);
         input_data[0..4].copy_from_slice(&selector);
         let era = [0u8; 33];
@@ -159,14 +192,13 @@ fn error_mapping_is_ok() {
         .execute_with(|| {
             initialize_first_block();
             let developer = TestAccount::Alex;
-            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
-            register_and_verify(developer.clone(), contract_array.clone());
+            register_and_verify(developer.clone(), TEST_CONTRACT);
 
             // attempt to register the same contract
             let selector = &Keccak256::digest(b"register(address)")[0..4];
             let mut input_data = Vec::<u8>::from([0u8; 36]);
             input_data[0..4].copy_from_slice(&selector);
-            input_data[16..36].copy_from_slice(&contract_array);
+            input_data[16..36].copy_from_slice(&TEST_CONTRACT);
             let expected = Some(Err(exit_error("AlreadyRegisteredContract")));
 
             assert_eq!(
@@ -184,8 +216,7 @@ fn register_is_ok() {
         .execute_with(|| {
             initialize_first_block();
             let developer = TestAccount::Alex;
-            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
-            register_and_verify(developer, contract_array.clone());
+            register_and_verify(developer, TEST_CONTRACT);
         });
 }
 
@@ -203,20 +234,21 @@ fn bond_and_stake_is_ok() {
 
             // register new contract by Alex
             let developer = TestAccount::Alex;
-            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
-            register_and_verify(developer, contract_array.clone());
+            register_and_verify(developer, TEST_CONTRACT);
 
             let amount_staked_bobo = 100 * AST;
-            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+            bond_stake_and_verify(TestAccount::Bobo, TEST_CONTRACT, amount_staked_bobo);
 
             let amount_staked_dino = 50 * AST;
-            bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
+            bond_stake_and_verify(TestAccount::Dino, TEST_CONTRACT, amount_staked_dino);
 
             let mut stakers_map = BTreeMap::new();
             stakers_map.insert(TestAccount::Bobo, amount_staked_bobo);
             stakers_map.insert(TestAccount::Dino, amount_staked_dino);
-            staking_info_verify(
-                contract_array,
+
+            contract_era_stake_verify(TEST_CONTRACT, amount_staked_bobo + amount_staked_dino, 1);
+            contract_era_stakers_verify(
+                TEST_CONTRACT,
                 amount_staked_bobo + amount_staked_dino,
                 1,
                 stakers_map,
@@ -238,22 +270,23 @@ fn unbond_and_unstake_is_ok() {
 
             // register new contract by Alex
             let developer = TestAccount::Alex;
-            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
-            register_and_verify(developer, contract_array.clone());
+            register_and_verify(developer, TEST_CONTRACT);
 
             let amount_staked_bobo = 100 * AST;
-            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+            bond_stake_and_verify(TestAccount::Bobo, TEST_CONTRACT, amount_staked_bobo);
             let amount_staked_dino = 50 * AST;
-            bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
+            bond_stake_and_verify(TestAccount::Dino, TEST_CONTRACT, amount_staked_dino);
 
             // Bobo unstakes all
             let era = 2;
             advance_to_era(era);
-            unbond_unstake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+            unbond_unstake_and_verify(TestAccount::Bobo, TEST_CONTRACT, amount_staked_bobo);
 
             let mut stakers_map = BTreeMap::new();
             stakers_map.insert(TestAccount::Dino, amount_staked_dino);
-            staking_info_verify(contract_array, amount_staked_dino, era, stakers_map);
+            // staking_info_verify(contract_array, amount_staked_dino, era, stakers_map);
+            contract_era_stake_verify(TEST_CONTRACT, amount_staked_dino, era);
+            contract_era_stakers_verify(TEST_CONTRACT, amount_staked_dino, era, stakers_map);
 
             // withdraw unbonded funds
             advance_to_era(era + UNBONDING_PERIOD + 1);
@@ -275,22 +308,21 @@ fn claim_is_ok() {
 
             // register new contract by Alex
             let developer = TestAccount::Alex;
-            let contract_array = H160::repeat_byte(0x09).to_fixed_bytes();
-            register_and_verify(developer, contract_array.clone());
+            register_and_verify(developer, TEST_CONTRACT);
 
             let stake_amount_total = 300 * AST;
             let ratio_bobo = Perbill::from_rational(3u32, 5u32);
             let ratio_dino = Perbill::from_rational(2u32, 5u32);
             let amount_staked_bobo = ratio_bobo * stake_amount_total;
-            bond_stake_and_verify(TestAccount::Bobo, contract_array, amount_staked_bobo);
+            bond_stake_and_verify(TestAccount::Bobo, TEST_CONTRACT, amount_staked_bobo);
 
             let amount_staked_dino = ratio_dino * stake_amount_total;
-            bond_stake_and_verify(TestAccount::Dino, contract_array, amount_staked_dino);
+            bond_stake_and_verify(TestAccount::Dino, TEST_CONTRACT, amount_staked_dino);
 
             // advance era and claim reward
             let era = 5;
             advance_to_era(era);
-            claim_and_verify(contract_array, era - 1);
+            claim_and_verify(TEST_CONTRACT, era - 1);
 
             //check that the reward is payed out to the stakers and the developer
             let developer_reward = Perbill::from_percent(DEVELOPER_REWARD_PERCENTAGE)
@@ -335,40 +367,25 @@ fn register_and_verify(developer: TestAccount, contract_array: [u8; 20]) {
     assert_ok!(Call::Evm(evm_call(developer.clone(), input_data)).dispatch(Origin::root()));
 
     // check the storage after the register
-    registered_contract_verify(developer.clone(), contract_array);
-    registered_developer_verify(developer, contract_array);
+    let smart_contract_bytes =
+        (DappsStaking::registered_contract(developer).unwrap_or_default()).encode();
+    assert_eq!(
+        smart_contract_bytes,
+        to_smart_contract_bytes(contract_array)
+    );
 
     // check_register_event(developer, contract_h160);
 }
 
-/// helper function to read storage with registered contracts
-fn registered_contract_verify(developer: TestAccount, contract_array_h160: [u8; 20]) {
-    let selector = &Keccak256::digest(b"registered_contract(address)")[0..4];
-    let mut input_data = Vec::<u8>::from([0u8; 36]);
-    input_data[0..4].copy_from_slice(&selector);
+/// transform 20 byte array (h160) to smart contract encoded 21 bytes
+pub fn to_smart_contract_bytes(input: [u8; 20]) -> [u8; 21] {
+    let mut smart_contract_bytes = [0u8; 21];
+    // prepend enum byte to the H160
+    // enum for SmartContract::H160 is 0
+    smart_contract_bytes[0] = 0;
 
-    let developer_arg = utils::argument_from_h160(developer.to_h160());
-    let contract = utils::argument_from_h160_array(contract_array_h160);
-
-    input_data[4..36].copy_from_slice(&developer_arg);
-
-    let expected = Some(Ok(PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output: contract,
-        cost: Default::default(),
-        logs: Default::default(),
-    }));
-
-    // verify that argument check is done in registered_contract
-    assert_eq!(
-        Precompiles::execute(precompile_address(), &selector, None, &default_context()),
-        Some(Err(exit_error("Too few arguments")))
-    );
-
-    assert_eq!(
-        Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
-        expected
-    );
+    smart_contract_bytes[1..21].copy_from_slice(&input[0..20]);
+    smart_contract_bytes
 }
 
 /// helper function to read ledger storage item
@@ -389,35 +406,6 @@ fn ledger_verify(staker: TestAccount, amount: u128) {
     }));
 
     // verify that argument check is done in registered_contract
-    assert_eq!(
-        Precompiles::execute(precompile_address(), &selector, None, &default_context()),
-        Some(Err(exit_error("Too few arguments")))
-    );
-
-    assert_eq!(
-        Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
-        expected
-    );
-}
-
-/// helper function to read storage with registered contracts
-fn registered_developer_verify(developer: TestAccount, contract_array_h160: [u8; 20]) {
-    let selector = &Keccak256::digest(b"registered_developer(address)")[0..4];
-    let mut input_data = Vec::<u8>::from([0u8; 36]);
-    input_data[0..4].copy_from_slice(&selector);
-
-    let contract = utils::argument_from_h160_array(contract_array_h160);
-
-    input_data[4..36].copy_from_slice(&contract);
-
-    let expected = Some(Ok(PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output: developer.to_argument(),
-        cost: Default::default(),
-        logs: Default::default(),
-    }));
-
-    // verify that argument check is done in registered_developer
     assert_eq!(
         Precompiles::execute(precompile_address(), &selector, None, &default_context()),
         Some(Err(exit_error("Too few arguments")))
@@ -498,15 +486,47 @@ fn claim_and_verify(contract_array: [u8; 20], era: EraIndex) {
     assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
 }
 
+fn contract_era_stake_verify(contract_array: [u8; 20], amount: u128, era: EraIndex) {
+    // prepare input to read staked amount on the contract
+    let selector = &Keccak256::digest(b"read_contract_era_stake(address,uint32)")[0..4];
+    let mut input_data = Vec::<u8>::from([0u8; 68]);
+    input_data[0..4].copy_from_slice(&selector);
+    input_data[16..36].copy_from_slice(&contract_array);
+    let mut era_vec = Vec::<u8>::from([0u8; 32]);
+    era_vec[31] = era as u8;
+    input_data[(68 - era_vec.len())..68].copy_from_slice(&era_vec);
+
+    // Compose expected outcome: 1. add total and rewards
+    let total = amount;
+    let expected_output = utils::argument_from_u128(total);
+    let expected = Some(Ok(PrecompileOutput {
+        exit_status: ExitSucceed::Returned,
+        output: expected_output,
+        cost: Default::default(),
+        logs: Default::default(),
+    }));
+    // verify that argument check is done in read_contract_era_stake
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &selector, None, &default_context()),
+        Some(Err(exit_error("Too few arguments")))
+    );
+
+    // execute and verify read_contract_era_stake() query
+    assert_eq!(
+        Precompiles::execute(precompile_address(), &input_data, None, &default_context()),
+        expected
+    );
+}
+
 /// helper function to check if bonding was successful
-fn staking_info_verify(
+fn contract_era_stakers_verify(
     contract_array: [u8; 20],
     amount: u128,
     era: EraIndex,
     stakers_map: BTreeMap<TestAccount, u128>,
 ) {
     // prepare input to read staked amount on the contract
-    let selector = &Keccak256::digest(b"contract_era_stake(address,uint32)")[0..4];
+    let selector = &Keccak256::digest(b"read_contract_era_stakers(address,uint32)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 68]);
     input_data[0..4].copy_from_slice(&selector);
     input_data[16..36].copy_from_slice(&contract_array);
@@ -522,17 +542,14 @@ fn staking_info_verify(
     expected_output.append(&mut claimed_reward_vec);
 
     // Compose expected outcome: 2. add number of elements of the array
-    let mut offset = utils::argument_from_u32(0x60_u32);
-    expected_output.append(&mut offset);
-    let mut num_elements = utils::argument_from_u32((stakers_map.len() * 2) as u32);
+    let mut expected_output = utils::argument_from_u32(0x20_u32);
+    let mut num_elements = utils::argument_from_u32(stakers_map.len() as u32);
     expected_output.append(&mut num_elements);
 
     // Compose expected outcome: 3. add stakers map as array [staker1, amount1, staker2, amount2]
     for staker_amount in stakers_map {
         let mut address = staker_amount.0.to_argument();
-        let mut amount = utils::argument_from_u128(staker_amount.1);
         expected_output.append(&mut address);
-        expected_output.append(&mut amount);
     }
 
     let expected = Some(Ok(PrecompileOutput {

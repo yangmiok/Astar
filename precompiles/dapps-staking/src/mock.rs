@@ -25,6 +25,7 @@ pub(crate) type EraIndex = u32;
 pub(crate) const REWARD_SCALING: u32 = 2;
 pub(crate) const MILLIAST: Balance = 1_000_000_000_000_000;
 pub(crate) const AST: Balance = 1_000 * MILLIAST;
+pub(crate) const TEST_CONTRACT: [u8; 20] = H160::repeat_byte(0x09).to_fixed_bytes();
 
 type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<TestRuntime>;
 type Block = frame_system::mocking::MockBlock<TestRuntime>;
