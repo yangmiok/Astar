@@ -326,7 +326,7 @@ where
             [0xe6, 0x08, 0xd8, 0x0b] => return Self::read_current_era(),
             [0xd9, 0x42, 0x4b, 0x16] => return Self::read_era_reward(input),
             [0x18, 0x38, 0x66, 0x93] => return Self::read_era_staked(input),
-            [0xfb, 0xfa, 0x94, 0x1f] => return Self::read_staked_amount(input),
+            [0x32, 0xbc, 0x5c, 0xa2] => return Self::read_staked_amount(input),
             [0x2e, 0x7e, 0x8f, 0x15] => return Self::read_contract_era_stake(input),
             [0x69, 0x31, 0xdd, 0xe5] => return Self::read_contract_era_stakers(input),
 
@@ -337,7 +337,7 @@ where
             [0x77, 0xa0, 0xfe, 0x02] => Self::withdraw_unbonded()?,
             [0xc1, 0x3f, 0x4a, 0xf7] => Self::claim(input)?,
             _ => {
-                sp_std::if_std! {println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);}
+                println!("!!!!!!!!!!! ERROR selector, selector={:x?}", selector);
                 return Err(ExitError::Other("No method at given selector".into()));
             }
         };

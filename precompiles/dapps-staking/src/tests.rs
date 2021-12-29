@@ -390,7 +390,7 @@ pub fn to_smart_contract_bytes(input: [u8; 20]) -> [u8; 21] {
 
 /// helper function to read ledger storage item
 fn ledger_verify(staker: TestAccount, amount: u128) {
-    let selector = &Keccak256::digest(b"ledger(address)")[0..4];
+    let selector = &Keccak256::digest(b"read_staked_amount(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
     input_data[0..4].copy_from_slice(&selector);
 
