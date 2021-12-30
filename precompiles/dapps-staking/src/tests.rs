@@ -247,11 +247,7 @@ fn bond_and_stake_is_ok() {
             stakers_map.insert(TestAccount::Dino, amount_staked_dino);
 
             contract_era_stake_verify(TEST_CONTRACT, amount_staked_bobo + amount_staked_dino, 1);
-            contract_era_stakers_verify(
-                TEST_CONTRACT,
-                1,
-                stakers_map,
-            );
+            contract_era_stakers_verify(TEST_CONTRACT, 1, stakers_map);
         });
 }
 
