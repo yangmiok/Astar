@@ -4272,7 +4272,7 @@ dependencies = [
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",
  "pallet-custom-signatures",
- "pallet-dapps-staking 2.0.0",
+ "pallet-dapps-staking",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-bn128",
@@ -5295,29 +5295,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-dapps-staking"
-version = "2.0.0"
-source = "git+https://github.com/AstarNetwork/Astar?rev=95f76bd62fab31073b4040d02cf2343de7222d99#95f76bd62fab31073b4040d02cf2343de7222d99"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "num-traits",
- "pallet-balances",
- "pallet-session",
- "pallet-timestamp",
- "parity-scale-codec",
- "scale-info",
- "serde",
- "sp-arithmetic",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-staking",
- "sp-std",
-]
-
-[[package]]
 name = "pallet-democracy"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/substrate?branch=polkadot-v0.9.12#d76f39995315ec36980908e4b99709bd14927044"
@@ -5681,7 +5658,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
- "pallet-dapps-staking 2.0.0",
+ "pallet-dapps-staking",
  "pallet-evm",
  "pallet-timestamp",
  "parity-scale-codec",
@@ -9283,7 +9260,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-custom-signatures",
- "pallet-dapps-staking 2.0.0 (git+https://github.com/AstarNetwork/Astar?rev=95f76bd62fab31073b4040d02cf2343de7222d99)",
+ "pallet-dapps-staking",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-bn128",
@@ -9352,7 +9329,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-custom-signatures",
- "pallet-dapps-staking 2.0.0",
+ "pallet-dapps-staking",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-bn128",
