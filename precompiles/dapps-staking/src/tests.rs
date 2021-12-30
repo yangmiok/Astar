@@ -249,7 +249,6 @@ fn bond_and_stake_is_ok() {
             contract_era_stake_verify(TEST_CONTRACT, amount_staked_bobo + amount_staked_dino, 1);
             contract_era_stakers_verify(
                 TEST_CONTRACT,
-                amount_staked_bobo + amount_staked_dino,
                 1,
                 stakers_map,
             );
@@ -286,7 +285,7 @@ fn unbond_and_unstake_is_ok() {
             stakers_map.insert(TestAccount::Dino, amount_staked_dino);
             // staking_info_verify(contract_array, amount_staked_dino, era, stakers_map);
             contract_era_stake_verify(TEST_CONTRACT, amount_staked_dino, era);
-            contract_era_stakers_verify(TEST_CONTRACT, amount_staked_dino, era, stakers_map);
+            contract_era_stakers_verify(TEST_CONTRACT, era, stakers_map);
 
             // withdraw unbonded funds
             advance_to_era(era + UNBONDING_PERIOD + 1);
@@ -383,13 +382,13 @@ pub fn to_smart_contract_bytes(input: [u8; 20]) -> [u8; 21] {
     // prepend enum byte to the H160
     // enum for SmartContract::H160 is 0
     smart_contract_bytes[0] = 0;
-
     smart_contract_bytes[1..21].copy_from_slice(&input[0..20]);
+
     smart_contract_bytes
 }
 
 /// helper function to read ledger storage item
-fn ledger_verify(staker: TestAccount, amount: u128) {
+fn read_staked_amount_verify(staker: TestAccount, amount: u128) {
     let selector = &Keccak256::digest(b"read_staked_amount(address)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 36]);
     input_data[0..4].copy_from_slice(&selector);
@@ -432,7 +431,7 @@ fn bond_stake_and_verify(staker: TestAccount, contract_array: [u8; 20], amount: 
     // call bond_and_stake()
     assert_ok!(Call::Evm(evm_call(staker.clone(), input_data)).dispatch(Origin::root()));
 
-    ledger_verify(staker, amount);
+    read_staked_amount_verify(staker, amount);
 }
 
 /// helper function to unbond, unstake and verify if resulet is OK
@@ -496,7 +495,7 @@ fn contract_era_stake_verify(contract_array: [u8; 20], amount: u128, era: EraInd
     era_vec[31] = era as u8;
     input_data[(68 - era_vec.len())..68].copy_from_slice(&era_vec);
 
-    // Compose expected outcome: 1. add total and rewards
+    // Compose expected outcome: add total stake on contract
     let total = amount;
     let expected_output = utils::argument_from_u128(total);
     let expected = Some(Ok(PrecompileOutput {
@@ -505,6 +504,7 @@ fn contract_era_stake_verify(contract_array: [u8; 20], amount: u128, era: EraInd
         cost: Default::default(),
         logs: Default::default(),
     }));
+
     // verify that argument check is done in read_contract_era_stake
     assert_eq!(
         Precompiles::execute(precompile_address(), &selector, None, &default_context()),
@@ -521,11 +521,10 @@ fn contract_era_stake_verify(contract_array: [u8; 20], amount: u128, era: EraInd
 /// helper function to check if bonding was successful
 fn contract_era_stakers_verify(
     contract_array: [u8; 20],
-    amount: u128,
     era: EraIndex,
     stakers_map: BTreeMap<TestAccount, u128>,
 ) {
-    // prepare input to read staked amount on the contract
+    // prepare input to read stakers on the contract
     let selector = &Keccak256::digest(b"read_contract_era_stakers(address,uint32)")[0..4];
     let mut input_data = Vec::<u8>::from([0u8; 68]);
     input_data[0..4].copy_from_slice(&selector);
@@ -534,19 +533,12 @@ fn contract_era_stakers_verify(
     era_vec[31] = era as u8;
     input_data[(68 - era_vec.len())..68].copy_from_slice(&era_vec);
 
-    // Compose expected outcome: 1. add total and rewards
-    let total = amount;
-    let claimed_reward = 0;
-    let mut expected_output = utils::argument_from_u128(total);
-    let mut claimed_reward_vec = utils::argument_from_u128(claimed_reward);
-    expected_output.append(&mut claimed_reward_vec);
-
-    // Compose expected outcome: 2. add number of elements of the array
+    // Compose expected outcome: add abi offset, add number of elements of the array
     let mut expected_output = utils::argument_from_u32(0x20_u32);
     let mut num_elements = utils::argument_from_u32(stakers_map.len() as u32);
     expected_output.append(&mut num_elements);
 
-    // Compose expected outcome: 3. add stakers map as array [staker1, amount1, staker2, amount2]
+    // Compose expected outcome: add list of stakers [staker1, staker2...]
     for staker_amount in stakers_map {
         let mut address = staker_amount.0.to_argument();
         expected_output.append(&mut address);
