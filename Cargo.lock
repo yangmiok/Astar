@@ -246,11 +246,7 @@ dependencies = [
 
 [[package]]
 name = "astar-runtime"
-<<<<<<< HEAD
 version = "3.2.2"
-=======
-version = "3.1.6"
->>>>>>> 95f76bd6 (Benchmark results. Version uplift.)
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -4276,7 +4272,7 @@ dependencies = [
  "pallet-contracts-primitives",
  "pallet-contracts-rpc-runtime-api",
  "pallet-custom-signatures",
- "pallet-dapps-staking 1.1.2",
+ "pallet-dapps-staking 2.0.0",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-bn128",
@@ -5685,7 +5681,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "pallet-balances",
- "pallet-dapps-staking",
+ "pallet-dapps-staking 2.0.0",
  "pallet-evm",
  "pallet-timestamp",
  "parity-scale-codec",
@@ -9262,11 +9258,7 @@ dependencies = [
 
 [[package]]
 name = "shibuya-runtime"
-<<<<<<< HEAD
 version = "3.2.2"
-=======
-version = "3.1.6"
->>>>>>> 95f76bd6 (Benchmark results. Version uplift.)
 dependencies = [
  "cumulus-pallet-aura-ext",
  "cumulus-pallet-parachain-system",
@@ -9291,7 +9283,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-custom-signatures",
- "pallet-dapps-staking 2.0.0",
+ "pallet-dapps-staking 2.0.0 (git+https://github.com/AstarNetwork/Astar?rev=95f76bd62fab31073b4040d02cf2343de7222d99)",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-bn128",
@@ -9360,7 +9352,7 @@ dependencies = [
  "pallet-collator-selection",
  "pallet-collective",
  "pallet-custom-signatures",
- "pallet-dapps-staking 1.1.2",
+ "pallet-dapps-staking 2.0.0",
  "pallet-ethereum",
  "pallet-evm",
  "pallet-evm-precompile-bn128",
