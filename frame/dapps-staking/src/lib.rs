@@ -59,12 +59,10 @@ impl Default for Forcing {
 
 /// A record for total rewards and total amount staked for an era
 #[derive(PartialEq, Eq, Clone, Default, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct EraRewardAndStake<Balance: HasCompact> {
+pub struct EraRewardAndStake<Balance> {
     /// Total amount of rewards for an era
-    #[codec(compact)]
     rewards: Balance,
     /// Total staked amount for an era
-    #[codec(compact)]
     staked: Balance,
 }
 
@@ -78,6 +76,8 @@ pub struct EraStakingPoints<AccountId: Ord, Balance: HasCompact> {
     total: Balance,
     /// The map of stakers and the amount they staked.
     stakers: BTreeMap<AccountId, Balance>,
+    // TODO: Get rid of this
+    _former_staked_era: EraIndex,
     /// Accrued and claimed rewards on this contract both for stakers and the developer
     #[codec(compact)]
     claimed_rewards: Balance,
